@@ -189,7 +189,7 @@ if __name__ == "__main__":
         start_year=2023,
         end_year=2024,
         skip_volume_filter=True,  # S&P 500 already liquid, skip for speed
-        save_path="../data/processed/event_table_2023_2024.parquet"
+        save_path="data/processed/event_table_2023_2024.parquet"
     )
     
     if len(df) > 0:

@@ -30,6 +30,7 @@ import numpy as np
 import wrds
 import logging
 from typing import List, Dict
+import pandas_market_calendars as mcal
 
 from src.data_loaders.taq import load_trades, load_quotes
 from src.features.order_flow import compute_daily_order_flow
@@ -50,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 # Test mode: reduce scope for quick validation
 TEST_MODE = True
-MAX_EVENTS = 5 if TEST_MODE else None
+MAX_EVENTS = 50 if TEST_MODE else None
 
 # Event window definition (Phase 1)
 # Window length determined by WINDOW_START and WINDOW_END below
@@ -182,37 +183,63 @@ def process_event(event: pd.Series, db: wrds.Connection) -> List[Dict]:
     return event_features
 
 
-def generate_date_window(rdq: pd.Timestamp, start_offset: int, end_offset: int) -> List[pd.Timestamp]:
+def generate_date_window(
+    rdq: pd.Timestamp, 
+    start_offset: int, 
+    end_offset: int,
+    use_crsp_calendar: bool = False,
+    db = None
+) -> List[pd.Timestamp]:
     """
-    Generate trading date window relative to rdq.
+    Generate trading date window using TRADING DAYS offset.
     
     Args:
         rdq: Earnings announcement date
-        start_offset: Days before rdq (negative)
-        end_offset: Days before rdq (negative)
+        start_offset: Trading days before rdq (negative, e.g., -2)
+        end_offset: Trading days before rdq (negative, e.g., -1)
+        use_crsp_calendar: If True, use CRSP calendar (requires db connection)
+        db: WRDS connection (required if use_crsp_calendar=True)
         
     Returns:
-        List of trading dates (excludes weekends, not NYSE holidays)
-        
-    Note:
-        Uses pd.bdate_range which excludes weekends but not NYSE holidays.
-        NYSE holidays (e.g., MLK Day) will result in empty TAQ data, which
-        is handled gracefully by error handling in process_event().
-        Phase 2 may use CRSP trading calendar for exact NYSE trading days.
-        
-    Example:
-        rdq = 2023-05-03 (Wednesday)
-        start_offset = -2, end_offset = -1
-        → [2023-05-01 (Monday), 2023-05-02 (Tuesday)]
+        List of trading dates in window
     """
     
-    # Generate business day range
-    start_date = rdq + pd.Timedelta(days=start_offset)
-    end_date = rdq + pd.Timedelta(days=end_offset)
+    if use_crsp_calendar and db is not None:
+        # Option A: CRSP calendar (most accurate for historical data)
+        year = rdq.year
+        query = f"""
+        SELECT DISTINCT date 
+        FROM crsp.dsi 
+        WHERE date BETWEEN '{year-1}-01-01' AND '{year+1}-12-31'
+        ORDER BY date
+        """
+        trading_days = pd.to_datetime(db.raw_sql(query)['date']).tolist()
+    else:
+        # Option B: NYSE calendar (faster, sufficient for 2023-2024)
+        nyse = mcal.get_calendar('NYSE')
+        buffer = 30
+        start = rdq - pd.Timedelta(days=buffer)
+        end = rdq + pd.Timedelta(days=5)
+        
+        schedule = nyse.schedule(start_date=start, end_date=end)
+        trading_days = schedule.index.tolist()
     
-    dates = pd.bdate_range(start=start_date, end=end_date)
+    # Find rdq position in trading days
+    try:
+        rdq_idx = trading_days.index(rdq)
+    except ValueError:
+        logger.warning(f"RDQ {rdq.date()} not a trading day")
+        return []
     
-    return list(dates)
+    # Calculate window using TRADING DAYS offset
+    start_idx = rdq_idx + start_offset  # e.g., -2
+    end_idx = rdq_idx + end_offset      # e.g., -1
+    
+    if start_idx < 0 or end_idx < 0:
+        logger.warning(f"Insufficient history for {rdq.date()}")
+        return []
+    
+    return trading_days[start_idx:end_idx + 1]
 
 
 def compute_daily_features(

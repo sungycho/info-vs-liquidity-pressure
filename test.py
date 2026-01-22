@@ -1,24 +1,39 @@
-# test_taq.py
-import sys
-sys.path.append('src')
+import pandas as pd
 
-from src.data_loaders.taq import load_trades
-import wrds
-import logging
+df = pd.read_parquet("data/processed/daily_features_full.parquet")
 
-logging.basicConfig(level=logging.INFO)
+event_table = pd.read_parquet(
+    "data/processed/event_table_2023_2024.parquet"
+)
 
-db = wrds.Connection()
 
-try:
-    # AAPL = permno 14593, 작은 날짜로 테스트
-    trades = load_trades(14593, "2023-05-03", db)
-    
-    print(f"\n✓ Success!")
-    print(f"  Loaded {len(trades):,} trades")
-    print(f"  Columns: {list(trades.columns)}")
-    print(f"\nFirst 3 rows:")
-    print(trades.head(3))
-    
-finally:
-    db.close()
+print(event_table.loc[
+    event_table["event_id"] == "E0022",
+    ["event_id", "permno", "rdq"]
+])
+
+
+"""
+days_per_event = df.groupby("event_id").size()
+eid = days_per_event[days_per_event == 6].index[0]
+
+sub = (
+    df[df["event_id"] == "E0022"]
+    .merge(
+        event_table[["event_id", "rdq"]],
+        on="event_id",
+        how="left"
+    )
+    .sort_values("date")
+)
+
+print(sub[["date", "rdq"]])
+
+
+sub[["date", "rdq"]]
+
+six_day_events = days_per_event[days_per_event == 6]
+
+print("Number of 6-day events:", len(six_day_events))
+print(six_day_events.head())
+"""

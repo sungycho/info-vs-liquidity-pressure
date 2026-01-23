@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 # Test mode: reduce scope for quick validation
 TEST_MODE = True
-MAX_EVENTS = 50 if TEST_MODE else None
+MAX_EVENTS = 5 if TEST_MODE else None
 
 # Event window definition (Phase 1)
 # Window length determined by WINDOW_START and WINDOW_END below

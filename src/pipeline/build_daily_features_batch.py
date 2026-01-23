@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ============================================================
 
-BATCH_SIZE = 20
-START_IDX = 20
+BATCH_SIZE = 2
+START_IDX = 0
 
 N_TRADING_DAYS = 10  # Exactly 10 NYSE trading days
 

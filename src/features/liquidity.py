@@ -144,6 +144,10 @@ def _resample_quotes_1s(quotes_df: pd.DataFrame) -> pd.DataFrame:
     
     df = quotes_df.copy()
     
+    # Convert decimal.Decimal columns to float to avoid type mismatch
+    df['bid'] = df['bid'].astype(float)
+    df['ask'] = df['ask'].astype(float)
+    
     # Set timestamp as index for resampling
     df = df.set_index('timestamp')
     

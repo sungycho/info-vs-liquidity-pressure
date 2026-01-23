@@ -8,9 +8,6 @@ desktop.ini
 data/raw/
 data/raw/**
 
-# Large processed data (optional)
-data/processed/
-
 #data archive
 data/archived/
 

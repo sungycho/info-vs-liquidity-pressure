@@ -11,6 +11,9 @@ data/raw/**
 # Large processed data (optional)
 data/processed/
 
+#data archive
+data/archived/
+
 # OS / editor junk
 .DS_Store
 __pycache__/

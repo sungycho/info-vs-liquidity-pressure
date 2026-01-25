@@ -1,11 +1,16 @@
-import wrds
 import pandas as pd
 
-db = wrds.Connection()
+df = pd.read_parquet("data/processed/daily_features_full.parquet")
 
-q = """
-SELECT COUNT(*) AS n_trades
-FROM taqm_2023.ctm_20230111
-WHERE sym_root = 'PLD'
-"""
-print(db.raw_sql(q))
+key = ["event_id", "permno", "date"]
+dup_mask = df.duplicated(subset=key, keep=False)
+dup_df = df[dup_mask].copy()
+
+event_conc = (
+    dup_df
+    .groupby("event_id")
+    .size()
+    .sort_values(ascending=False)
+)
+
+print(event_conc.head(15))

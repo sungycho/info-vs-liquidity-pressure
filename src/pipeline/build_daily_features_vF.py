@@ -39,13 +39,13 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ============================================================
 
-BATCH_SIZE = 2
-START_IDX = 0
+BATCH_SIZE = 25
+START_IDX = 2975
 
 N_TRADING_DAYS = 10
 
 EVENT_TABLE_PATH = "data/processed/event_table_2023_2024.parquet"
-OUTPUT_DIR = "data/processed/daily_features_batch"
+OUTPUT_DIR = r"C:\Users\chosu\OneDrive - PennO365\quant-data\daily_features_batch"
 
 
 # ============================================================

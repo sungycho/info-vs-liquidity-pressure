@@ -1,232 +1,65 @@
 """
-Research-grade TAQ loader - SQLAlchemy 2.x compatible
+Diagnose why 1,520 events (36%) are being dropped.
 """
-import wrds
+
 import pandas as pd
-import logging
-from typing import Optional
-from sqlalchemy import text
+import numpy as np
 
-logger = logging.getLogger(__name__)
+# Load data
+daily_df = pd.read_parquet("data/processed/daily_features_full_v2.parquet")
+events_df = pd.read_parquet("data/processed/event_table_2023_2024.parquet")
 
+print("="*60)
+print("Event Loss Diagnostic")
+print("="*60)
 
-def load_trades(
-    permno: int,
-    date: str,
-    db: wrds.Connection,
-    start_time: str = "09:30:00",
-    end_time: str = "16:00:00"
-) -> pd.DataFrame:
-    """Load TAQ trades for one permno-date with research-grade cleaning."""
-    
-    # Step 1: Get ticker
-    ticker_query = text(f"""
-    SELECT ticker
-    FROM crsp.stocknames
-    WHERE permno = {permno}
-        AND '{date}' >= namedt 
-        AND '{date}' <= nameenddt
-    LIMIT 1
-    """)
-    
-    try:
-        result = db.connection.execute(ticker_query)
-        row = result.fetchone()
-        
-        if row is None:
-            logger.warning(f"No ticker mapping for permno {permno} on {date}")
-            return pd.DataFrame()
-        
-        ticker = row[0]
-        
-    except Exception as e:
-        logger.error(f"Error getting ticker for permno {permno}: {e}")
-        return pd.DataFrame()
-    
-    # Step 2: Load TAQ trades
-    date_str = pd.to_datetime(date).strftime('%Y%m%d')
-    year = pd.to_datetime(date).year
-    
-    query = text(f"""
-    SELECT 
-        time_m as timestamp,
-        sym_root as ticker,
-        price,
-        size,
-        ex as exchange
-    FROM taqm_{year}.ctm_{date_str}
-    WHERE sym_root = '{ticker}'
-        AND time_m >= '{start_time}' 
-        AND time_m <= '{end_time}'
-        AND price > 0
-        AND size > 0
-        AND tr_corr = '00'
-        AND ex IN ('N', 'Q', 'A', 'P', 'Z')
-    ORDER BY time_m
-    """)
-    
-    try:
-        result = db.connection.execute(query)
-        rows = result.fetchall()
-        
-        if len(rows) == 0:
-            logger.warning(f"No trades for permno {permno} ({ticker}) on {date}")
-            return pd.DataFrame()
-        
-        columns = result.keys()
-        df = pd.DataFrame(rows, columns=columns)
-        
-        # Convert timestamp
-        base_date = pd.to_datetime(date).tz_localize('America/New_York')
-        df['timestamp'] = base_date + pd.to_timedelta(df['timestamp'])
-        
-        df['permno'] = permno
-        df['date'] = pd.to_datetime(date)
-        
-        logger.info(f"Loaded {len(df):,} trades for permno {permno} on {date}")
-        return df
-        
-    except Exception as e:
-        logger.error(f"Error loading trades for permno {permno} on {date}: {e}")
-        return pd.DataFrame()
+# Add event_day
+events_meta = events_df[['event_id', 'permno', 'rdq']].copy()
+events_meta = events_meta.rename(columns={'rdq': 'announce_date'})
+daily_df = daily_df.merge(events_meta, on=['event_id', 'permno'], how='left')
+daily_df['announce_date'] = pd.to_datetime(daily_df['announce_date'])
+daily_df['date'] = pd.to_datetime(daily_df['date'])
+daily_df['event_day'] = (daily_df['date'] - daily_df['announce_date']).dt.days
 
+print(f"\n1. Event day distribution (all data):")
+print(daily_df['event_day'].value_counts().sort_index())
 
-def load_quotes(
-    permno: int,
-    date: str,
-    db: wrds.Connection,
-    start_time: str = "09:30:00",
-    end_time: str = "16:00:00"
-) -> pd.DataFrame:
-    """Load TAQ quotes for one permno-date with research-grade cleaning."""
-    
-    # Get ticker
-    ticker_query = text(f"""
-    SELECT ticker
-    FROM crsp.stocknames
-    WHERE permno = {permno}
-        AND '{date}' >= namedt 
-        AND '{date}' <= nameenddt
-    LIMIT 1
-    """)
-    
-    try:
-        result = db.connection.execute(ticker_query)
-        row = result.fetchone()
-        
-        if row is None:
-            logger.warning(f"No ticker for permno {permno} on {date}")
-            return pd.DataFrame()
-        
-        ticker = row[0]
-        
-    except Exception as e:
-        logger.error(f"Error getting ticker: {e}")
-        return pd.DataFrame()
-    
-    # Load quotes
-    date_str = pd.to_datetime(date).strftime('%Y%m%d')
-    year = pd.to_datetime(date).year
-    
-    query = text(f"""
-    SELECT 
-        time_m as timestamp,
-        sym_root as ticker,
-        bid,
-        ask,
-        ex as exchange
-    FROM taqm_{year}.cqm_{date_str}
-    WHERE sym_root = '{ticker}'
-        AND time_m >= '{start_time}' 
-        AND time_m <= '{end_time}'
-        AND bid > 0
-        AND ask > 0
-        AND ask > bid
-        AND ex IN ('N', 'Q', 'A', 'P', 'Z')
-    ORDER BY time_m
-    """)
-    
-    try:
-        result = db.connection.execute(query)
-        rows = result.fetchall()
-        
-        if len(rows) == 0:
-            logger.warning(f"No quotes for permno {permno} on {date}")
-            return pd.DataFrame()
-        
-        columns = result.keys()
-        df = pd.DataFrame(rows, columns=columns)
-        
-        # Convert timestamp
-        base_date = pd.to_datetime(date).tz_localize('America/New_York')
-        df['timestamp'] = base_date + pd.to_timedelta(df['timestamp'])
-        
-        # Calculate spread
-        df['midpoint'] = (df['bid'] + df['ask']) / 2
-        df['spread'] = (df['ask'] - df['bid']) / df['midpoint']
-        
-        # Remove extreme spreads
-        n_before = len(df)
-        df = df[df['spread'] < 0.50]
-        n_removed = n_before - len(df)
-        
-        if n_removed > 0:
-            logger.debug(f"Removed {n_removed} quotes with spread > 50%")
-        
-        df['permno'] = permno
-        df['date'] = pd.to_datetime(date)
-        
-        logger.info(f"Loaded {len(df):,} quotes for permno {permno} on {date}")
-        return df
-        
-    except Exception as e:
-        logger.error(f"Error loading quotes: {e}")
-        return pd.DataFrame()
+print(f"\n2. Events by day count (before filtering):")
+event_day_counts = daily_df.groupby('event_id')['event_day'].apply(lambda x: len(x.unique()))
+print(event_day_counts.value_counts().sort_index())
 
+# Filter [-10, -1]
+pre_window = daily_df[(daily_df['event_day'] >= -10) & (daily_df['event_day'] <= -1)]
 
-def load_trades_window(
-    permno: int,
-    start_date: str,
-    end_date: str,
-    db: wrds.Connection
-) -> pd.DataFrame:
-    """Load trades for an event window."""
-    
-    date_range = pd.bdate_range(start=start_date, end=end_date)
-    all_trades = []
-    
-    for date in date_range:
-        date_str = date.strftime('%Y-%m-%d')
-        trades = load_trades(permno, date_str, db)
-        
-        if len(trades) > 0:
-            all_trades.append(trades)
-    
-    if len(all_trades) == 0:
-        logger.warning(f"No trades for permno {permno} in {start_date} to {end_date}")
-        return pd.DataFrame()
-    
-    result = pd.concat(all_trades, ignore_index=True)
-    logger.info(f"Loaded {len(result):,} trades across {len(date_range)} days")
-    
-    return result
+print(f"\n3. After [-10, -1] filter:")
+print(f"   Events before: {daily_df['event_id'].nunique()}")
+print(f"   Events after: {pre_window['event_id'].nunique()}")
+print(f"   Lost: {daily_df['event_id'].nunique() - pre_window['event_id'].nunique()}")
 
+print(f"\n4. Days per event in [-10, -1] window:")
+event_counts = pre_window.groupby('event_id').size()
+print(event_counts.value_counts().sort_index())
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    
-    db = wrds.Connection()
-    
-    try:
-        print("Testing single-day load...")
-        trades = load_trades(14593, "2023-05-03", db)
-        print(f"\nTrades shape: {trades.shape}")
-        if len(trades) > 0:
-            print(trades.head())
-        
-    finally:
-        db.close()
-        print("\n✓ Test complete")
+print(f"\n5. Events with < 7 days:")
+insufficient = event_counts[event_counts < 7]
+print(f"   Count: {len(insufficient)}")
+print(f"   Percentage: {len(insufficient) / len(event_counts) * 100:.1f}%")
+
+print(f"\n6. Sample events with < 7 days:")
+sample_insufficient = insufficient.head(5)
+for event_id in sample_insufficient.index:
+    event_data = pre_window[pre_window['event_id'] == event_id]
+    print(f"\n   {event_id}:")
+    print(f"     Permno: {event_data['permno'].iloc[0]}")
+    print(f"     Announce: {event_data['announce_date'].iloc[0].date()}")
+    print(f"     Days in window: {len(event_data)}")
+    print(f"     Event days: {sorted(event_data['event_day'].unique())}")
+    print(f"     Dates: {sorted(event_data['date'].dt.date.unique())}")
+
+print(f"\n7. Hypothesis check - are these holiday-heavy periods?")
+insufficient_events = pre_window[pre_window['event_id'].isin(insufficient.index)]
+date_dist = insufficient_events['date'].dt.to_period('M').value_counts().sort_index()
+print("   Month distribution of insufficient events:")
+print(date_dist)
+
+print("\n" + "="*60)

@@ -118,5 +118,5 @@ It does not constitute investment advice and should not be used for live trading
 ---
 
 ## Author
-Sung Cho
+Sung Cho  
 June Lee

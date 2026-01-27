@@ -1,0 +1,343 @@
+"""
+Build event_features.parquet from daily microstructure data.
+
+This script:
+1. Loads daily features with abnormal volume ratio
+2. Filters pre-event window [-10, -1]
+3. Aggregates to event level
+4. Computes info vs liquidity pressure scores
+5. Outputs event_features.parquet
+
+Author: Sung
+Date: 2025-01-27
+"""
+
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import logging
+
+# Setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Paths
+DAILY_FEATURES_PATH = "data/processed/daily_features_full_v2.parquet"
+EVENT_TABLE_PATH = "data/processed/event_table_2023_2024.parquet"
+OUTPUT_PATH = "data/processed/event_features.parquet"
+
+# Config
+MIN_DAYS = 7  # Minimum trading days required per event
+VOLUME_BURST_THRESHOLD = 1.5  # Abnormal volume ratio threshold
+
+
+def load_data():
+    """Load daily features and event metadata."""
+    logger.info("Loading data...")
+    
+    # Daily features
+    daily_df = pd.read_parquet(DAILY_FEATURES_PATH)
+    logger.info(f"  Loaded {len(daily_df):,} daily observations")
+    
+    # Event table for announce dates
+    events_df = pd.read_parquet(EVENT_TABLE_PATH)
+    logger.info(f"  Loaded {len(events_df):,} events")
+    
+    return daily_df, events_df
+
+
+def add_event_metadata(daily_df: pd.DataFrame, events_df: pd.DataFrame) -> pd.DataFrame:
+    """Add event metadata (announce date, permno if missing)."""
+    logger.info("Adding event metadata...")
+    
+    # Get announce dates
+    events_meta = events_df[['event_id', 'permno', 'rdq']].copy()
+    events_meta = events_meta.rename(columns={'rdq': 'announce_date'})
+    
+    # Merge
+    daily_df = daily_df.merge(events_meta, on=['event_id', 'permno'], how='left')
+    daily_df['announce_date'] = pd.to_datetime(daily_df['announce_date'])
+    daily_df['date'] = pd.to_datetime(daily_df['date'])
+    
+    logger.info(f"  ✓ Added announce_date for {daily_df['event_id'].nunique()} events")
+    
+    return daily_df
+
+
+def filter_sufficient_events(daily_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop events with insufficient trading days.
+    
+    NOTE: Data is already filtered to trading day window [-10, -1] from Week 1 pipeline.
+    We only need to check minimum day count, not re-filter by date.
+    """
+    logger.info(f"Filtering events with sufficient data (min {MIN_DAYS} trading days)...")
+    
+    # Count trading days per event (already in correct window from Week 1)
+    event_counts = daily_df.groupby('event_id').size()
+    
+    logger.info(f"  Trading days per event distribution:")
+    logger.info(f"{event_counts.value_counts().sort_index().to_string()}")
+    
+    insufficient = (event_counts < MIN_DAYS).sum()
+    
+    if insufficient > 0:
+        logger.info(f"  Dropping {insufficient} events with < {MIN_DAYS} trading days")
+        valid_events = event_counts[event_counts >= MIN_DAYS].index
+        daily_df = daily_df[daily_df['event_id'].isin(valid_events)]
+    
+    logger.info(f"  ✓ Final: {daily_df['event_id'].nunique()} events, {len(daily_df):,} rows")
+    
+    return daily_df
+
+
+def aggregate_daily_to_event(daily_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregate daily features to event level.
+    
+    NOTE: Input data already contains only pre-event trading days from Week 1 pipeline.
+    """
+    logger.info("Aggregating daily features to event level...")
+    
+    # Basic aggregations
+    event_agg = daily_df.groupby('event_id').agg({
+        # Info components
+        'ofi': ['mean', 'std'], # ofi_std retained for diagnostics, not used in scoring
+        'morning_share': 'mean',
+        'spread_stability': 'mean',
+        
+        # Liquidity components
+        'ofi_abs': 'mean',
+        'abnormal_vol_ratio': lambda x: (x > VOLUME_BURST_THRESHOLD).mean(),  # Burst fraction
+        'spread_std': 'mean',
+        'spread_p95': 'max',
+        
+        # Controls
+        'volume': 'mean',
+        'num_trades': 'mean',
+        
+        # Metadata
+        'permno': 'first',
+        'announce_date': 'first'
+    }).reset_index()
+    
+    # Flatten column names
+    event_agg.columns = ['_'.join(col).strip('_') if col[1] else col[0] 
+                         for col in event_agg.columns]
+    
+    # Rename for clarity
+    event_agg = event_agg.rename(columns={
+        'ofi_mean': 'ofi_mean',
+        'ofi_std': 'ofi_std_mean',
+        'ofi_abs_mean': 'ofi_abs_mean',
+        'abnormal_vol_ratio_<lambda>': 'volume_burst_fraction',
+        'morning_share_mean': 'morning_share_mean',
+        'spread_stability_mean': 'spread_stability_mean',
+        'spread_std_mean': 'spread_std_mean',
+        'spread_p95_max': 'spread_p95_max',
+        'permno_first': 'permno',
+        'announce_date_first': 'event_date'
+    })
+    
+    logger.info(f"  Aggregated to {len(event_agg)} events")
+    
+    return event_agg
+
+
+def compute_ofi_autocorr(daily_df: pd.DataFrame) -> pd.Series:
+    """Compute OFI autocorrelation (lag=1) for each event."""
+    logger.info("Computing OFI autocorrelation...")
+    
+    def safe_autocorr(x):
+        """Compute autocorr with NaN for insufficient data."""
+        if len(x) < 4:
+            return np.nan
+        try:
+            return x.autocorr(lag=1)
+        except:
+            return np.nan
+    
+    ofi_autocorr = daily_df.groupby('event_id')['ofi'].apply(safe_autocorr)
+    
+    valid_count = ofi_autocorr.notna().sum()
+    logger.info(f"  Valid autocorr: {valid_count} / {len(ofi_autocorr)}")
+    
+    return ofi_autocorr
+
+
+def normalize_components(event_agg: pd.DataFrame) -> pd.DataFrame:
+    """Min-max normalize all scoring components."""
+    logger.info("Normalizing components (min-max scaling)...")
+    
+    def normalize(x):
+        """Min-max scaling to [0, 1]."""
+        x_min = x.min()
+        x_max = x.max()
+        if x_max == x_min:
+            return pd.Series(0.5, index=x.index)  # All same -> neutral
+        return (x - x_min) / (x_max - x_min)
+    
+    # Create derived features first
+    event_agg['ofi_mean_abs'] = event_agg['ofi_mean'].abs()
+    
+    # Define components
+    info_components = ['ofi_mean_abs', 'ofi_autocorr', 'spread_stability_mean']
+    liq_components = ['ofi_abs_mean', 'volume_burst_fraction', 'spread_std_mean', 'spread_p95_max']
+    
+    # Normalize each component
+    for col in info_components + liq_components:
+        if col in event_agg.columns:
+            event_agg[f'{col}_norm'] = normalize(event_agg[col])
+        else:
+            logger.warning(f"  Missing component: {col}")
+    
+    logger.info(f"  Normalized {len(info_components)} info + {len(liq_components)} liquidity components")
+    
+    return event_agg, info_components, liq_components
+
+
+def compute_pressure_scores(event_agg: pd.DataFrame, info_components: list, liq_components: list) -> pd.DataFrame:
+    """Compute info_score, liq_score, and final pressure_score."""
+    logger.info("Computing pressure scores...")
+    
+    # Info score (sum of normalized components)
+    info_cols = [f'{c}_norm' for c in info_components]
+    event_agg['info_score'] = event_agg[info_cols].sum(axis=1)
+    
+    # Liquidity score (sum of normalized components)
+    liq_cols = [f'{c}_norm' for c in liq_components]
+    event_agg['liq_score'] = event_agg[liq_cols].sum(axis=1)
+    
+    # Final pressure score: tanh((info - liq) / 2)
+    event_agg['pressure_score'] = np.tanh((event_agg['info_score'] - event_agg['liq_score']) / 2)
+    
+    logger.info(f"  ✓ Computed scores for {len(event_agg)} events")
+    
+    return event_agg
+
+
+def validate_output(event_agg: pd.DataFrame):
+    """Basic validation checks."""
+    logger.info("\nValidation:")
+    
+    # Check for missing pressure_score
+    missing = event_agg['pressure_score'].isna().sum()
+    logger.info(f"  Missing pressure_score: {missing} / {len(event_agg)}")
+    
+    # Distribution
+    ps_stats = event_agg['pressure_score'].describe()
+    logger.info(f"\n  Pressure Score Distribution:")
+    logger.info(f"    Mean: {ps_stats['mean']:.3f}")
+    logger.info(f"    Std:  {ps_stats['std']:.3f}")
+    logger.info(f"    Min:  {ps_stats['min']:.3f}")
+    logger.info(f"    Q25:  {ps_stats['25%']:.3f}")
+    logger.info(f"    Q50:  {ps_stats['50%']:.3f}")
+    logger.info(f"    Q75:  {ps_stats['75%']:.3f}")
+    logger.info(f"    Max:  {ps_stats['max']:.3f}")
+    
+    # Correlation
+    corr = event_agg[['info_score', 'liq_score']].corr().iloc[0, 1]
+    logger.info(f"\n  Correlation (info_score, liq_score): {corr:.3f}")
+    
+    if abs(corr) > 0.7:
+        logger.warning("    ⚠ High correlation - components may not be independent")
+    
+    # Check range
+    if event_agg['pressure_score'].min() < -1.01 or event_agg['pressure_score'].max() > 1.01:
+        logger.warning("    ⚠ pressure_score outside [-1, 1] range")
+
+
+def save_output(event_agg: pd.DataFrame, output_path: str):
+    """Save event features."""
+    logger.info(f"\nSaving output to {output_path}")
+    
+    # Select columns for output
+    output_cols = [
+        'event_id', 'permno', 'event_date',
+        
+        # Raw aggregated features
+        'ofi_mean', 'ofi_std_mean', 'ofi_abs_mean', 'ofi_autocorr',
+        'morning_share_mean', 'spread_stability_mean', 
+        'spread_std_mean', 'spread_p95_max',
+        'volume_burst_fraction',
+        
+        # Scores
+        'info_score', 'liq_score', 'pressure_score',
+        
+        # Controls
+        'volume_mean', 'num_trades_mean'
+    ]
+    
+    # Keep only available columns
+    output_cols = [c for c in output_cols if c in event_agg.columns]
+    
+    output_df = event_agg[output_cols].copy()
+    
+    # Create output directory
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save
+    output_df.to_parquet(output_path, index=False)
+    
+    file_size = Path(output_path).stat().st_size / 1024  # KB
+    logger.info(f"  ✓ Saved {len(output_df)} events ({file_size:.1f} KB)")
+
+
+def main():
+    """Main execution pipeline."""
+    logger.info("="*60)
+    logger.info("Build Event Features Pipeline")
+    logger.info("="*60)
+    
+    # Step 1: Load data
+    daily_df, events_df = load_data()
+    
+    # Step 2: Add event metadata (announce_date)
+    daily_df = add_event_metadata(daily_df, events_df)
+    
+    # Step 3: Filter events with sufficient trading days
+    # NOTE: Data already contains trading day window [-10, -1] from Week 1
+    # We only need to check minimum day count
+    daily_df = filter_sufficient_events(daily_df)
+    
+    # Step 4: Aggregate to event level
+    event_agg = aggregate_daily_to_event(daily_df)
+    
+    # Step 5: Compute OFI autocorrelation
+    ofi_autocorr = compute_ofi_autocorr(daily_df)
+    event_agg = event_agg.merge(
+        ofi_autocorr.rename('ofi_autocorr').reset_index(),
+        on='event_id',
+        how='left'
+    )
+    
+    # Step 6: Handle missing autocorr (impute with median)
+    if event_agg['ofi_autocorr'].isna().any():
+        median_autocorr = event_agg['ofi_autocorr'].median()
+        n_missing = event_agg['ofi_autocorr'].isna().sum()
+        logger.info(f"  Imputing {n_missing} missing autocorr with median: {median_autocorr:.3f}")
+        event_agg['ofi_autocorr'] = event_agg['ofi_autocorr'].fillna(median_autocorr)
+    
+    # Step 7: Normalize components
+    event_agg, info_components, liq_components = normalize_components(event_agg)
+    
+    # Step 8: Compute pressure scores
+    event_agg = compute_pressure_scores(event_agg, info_components, liq_components)
+    
+    # Step 9: Validate
+    validate_output(event_agg)
+    
+    # Step 10: Save
+    save_output(event_agg, OUTPUT_PATH)
+    
+    logger.info("\n" + "="*60)
+    logger.info("Pipeline Complete")
+    logger.info("="*60)
+    logger.info(f"Input:  {DAILY_FEATURES_PATH}")
+    logger.info(f"Output: {OUTPUT_PATH}")
+    logger.info(f"Events: {len(event_agg)}")
+    logger.info(f"\n📊 Coverage: {len(event_agg)} / {events_df['event_id'].nunique()} original events")
+
+
+if __name__ == "__main__":
+    main()

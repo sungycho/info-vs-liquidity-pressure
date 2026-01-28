@@ -26,8 +26,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Paths
-DAILY_FEATURES_PATH = "data/processed/daily_features_full.parquet"
-OUTPUT_PATH = "data/processed/daily_features_full_v2.parquet"
+DAILY_FEATURES_PATH = "data/processed/archived/daily_features_no_abnormal_volume.parquet"
+OUTPUT_PATH = "data/processed/daily_features.parquet"
 
 # Config
 BASELINE_WINDOW = 20  # Trading days for rolling average

@@ -45,7 +45,7 @@ START_IDX = 2975
 N_TRADING_DAYS = 10
 
 EVENT_TABLE_PATH = "data/processed/event_table_2023_2024.parquet"
-OUTPUT_DIR = r"C:\Users\chosu\OneDrive - PennO365\quant-data\daily_features_batch"
+OUTPUT_DIR = r"SET_YOUR_OWN_OUTPUT_PATH"
 
 
 # ============================================================

@@ -60,7 +60,7 @@ WINDOW_END = -1    # days before rdq
 
 # File paths
 EVENT_TABLE_PATH = "data/processed/event_table_2023_2024.parquet"
-OUTPUT_PATH = "data/processed/daily_features_2023_2024.parquet"
+OUTPUT_PATH = r"SET_YOUR_OWN_OUTPUT_PATH"
 
 
 # ============================================================

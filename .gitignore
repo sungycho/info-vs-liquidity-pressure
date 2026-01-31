@@ -227,3 +227,6 @@ __marimo__/
 
 # Intermediate batch outputs
 data/archived/daily_features_intermediate/
+
+#VS Code
+.vscode/

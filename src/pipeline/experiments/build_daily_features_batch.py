@@ -45,8 +45,8 @@ START_IDX = 0
 
 N_TRADING_DAYS = 10  # Exactly 10 NYSE trading days
 
-EVENT_TABLE_PATH = "data/processed/event_table_2023_2024.parquet"
-OUTPUT_PATH = "data/processed/daily_features_full.parquet"
+EVENT_TABLE_PATH = "data/processed/event_table.parquet"
+OUTPUT_PATH = r"SET_YOUR_OWN_OUTPUT_PATH"
 
 
 # ============================================================

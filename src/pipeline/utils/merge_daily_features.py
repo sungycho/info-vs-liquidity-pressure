@@ -7,8 +7,8 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-BATCH_DIR = Path("data/processed/daily_features_batch")
-OUTPUT_PATH = Path("data/processed/daily_features_full.parquet")
+BATCH_DIR = Path("data/archived/daily_features_intermediate")
+OUTPUT_PATH = Path("data/processed/archived/daily_features_no_abnormal_volume.parquet")
 
 DEDUP_KEYS = ["event_id", "permno", "date"]
 

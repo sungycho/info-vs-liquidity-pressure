@@ -39,13 +39,13 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ============================================================
 
-BATCH_SIZE = 25
-START_IDX = 2975
+BATCH_SIZE = 20 #Number of stocks to process in each batch
+START_IDX = 0 #Update this to continue processing from a specific index
 
-N_TRADING_DAYS = 10
+N_TRADING_DAYS = 10 #Number of trading days to look back for features - should be consistent throughout pipeline
 
-EVENT_TABLE_PATH = "data/processed/event_table_2023_2024.parquet"
-OUTPUT_DIR = r"SET_YOUR_OWN_OUTPUT_PATH"
+EVENT_TABLE_PATH = "data/processed/event_table.parquet"
+OUTPUT_DIR = "data/archived/daily_features_intermediate"
 
 
 # ============================================================

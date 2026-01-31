@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
@@ -82,46 +83,3 @@ def _event_pi_ri(ofi_series: pd.Series) -> dict:
         "T": T,
     }
 
-
-def compute_pi_ri(
-    daily_df: pd.DataFrame,
-    event_col: str = "event_id",
-    date_col: str = "date",
-    ofi_col: str = "ofi",
-    min_days: int = 7,
-) -> pd.DataFrame:
-    """
-    Compute Persistence Index (PI) and Reversibility Index (RI) per event.
-
-    Parameters
-    ----------
-    daily_df : DataFrame
-        Must contain columns [event_col, date_col, ofi_col].
-        Multiple rows per event; will be sorted by date within event.
-    min_days : int
-        Events with fewer than this many observations are dropped.
-
-    Returns
-    -------
-    DataFrame with one row per event_id:
-        [event_id, PI, RI, component columns..., T]
-    """
-    df = daily_df[[event_col, date_col, ofi_col]].copy()
-    df[date_col] = pd.to_datetime(df[date_col])
-    df = df.sort_values([event_col, date_col])
-
-    # Filter by min days
-    counts = df.groupby(event_col)[ofi_col].size()
-    keep = counts[counts >= min_days].index
-    df = df[df[event_col].isin(keep)]
-
-    rows = []
-    for eid, g in df.groupby(event_col, sort=False):
-        res = _event_pi_ri(g[ofi_col])
-        res[event_col] = eid
-        rows.append(res)
-
-    out = pd.DataFrame(rows)
-    # Put event_id first
-    cols = [event_col] + [c for c in out.columns if c != event_col]
-    return out[cols]

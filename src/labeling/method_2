@@ -64,12 +64,44 @@ def _event_pi_ri(ofi_series: pd.Series) -> dict:
     else:
         A = np.nan
 
-    # Average available components (ignore NaNs)
-    PI_components = np.array([rho1_01, C, D], dtype=float)
-    RI_components = np.array([Gamma, F, A], dtype=float)
+    # ----------------------------
+    # Reliability-based weighting
+    # ----------------------------
 
-    PI = float(np.nanmean(PI_components)) if np.isfinite(np.nanmean(PI_components)) else np.nan
-    RI = float(np.nanmean(RI_components)) if np.isfinite(np.nanmean(RI_components)) else np.nan
+    # --- PI weights ---
+    w_rho = max(T - 3, 1)
+    w_c   = max(T - 1, 1)
+    w_d   = max(T, 1)
+
+    pi_vals = np.array([rho1_01, C, D], dtype=float)
+    pi_wts  = np.array([w_rho, w_c, w_d], dtype=float)
+
+    valid_pi = ~np.isnan(pi_vals)
+    PI = (
+        np.sum(pi_vals[valid_pi] * pi_wts[valid_pi]) /
+        np.sum(pi_wts[valid_pi])
+        if valid_pi.any()
+        else np.nan
+    )
+
+    # --- RI weights ---
+    Td = T - 1
+
+    w_gamma = max(Td - 3, 1)
+    w_f     = max(Td, 1)
+    w_a     = max(Td, 1)
+
+    ri_vals = np.array([Gamma, F, A], dtype=float)
+    ri_wts  = np.array([w_gamma, w_f, w_a], dtype=float)
+
+    valid_ri = ~np.isnan(ri_vals)
+    RI = (
+        np.sum(ri_vals[valid_ri] * ri_wts[valid_ri]) /
+        np.sum(ri_wts[valid_ri])
+        if valid_ri.any()
+        else np.nan
+    )
+
 
     return {
         "PI": PI,
@@ -127,6 +159,8 @@ def compute_pi_ri(
     # Put event_id first
     cols = [event_col] + [c for c in out.columns if c != event_col]
     return out[cols]
+
+
 
 def plot_component_distributions(
     df,

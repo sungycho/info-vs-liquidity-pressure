@@ -1,4 +1,4 @@
-# Method 3: Separate PI and RI. Use our intuition/belief to arbitrarily weigh the components, and modify the weights with Bayesian inference.
+# Method 3: Separate PI and RI. Use our intuition/belief to arbitrarily weigh the components, and modify the weights with Bayesian shrinkage.
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

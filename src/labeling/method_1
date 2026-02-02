@@ -1,4 +1,4 @@
-## Method 1: Separate PI and RI. PI and RI are the arithmetic mean of the components.
+# Method 1: Separate PI and RI. PI and RI are the arithmetic mean of the components.
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

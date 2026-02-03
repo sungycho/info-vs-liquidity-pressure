@@ -78,8 +78,8 @@ def plot_distributions(df: pd.DataFrame, output_dir: str = "outputs/diagnostics"
         
         # Remove outliers for better visualization
         data = df[col].dropna()
-        q01 = data.quantile(0.00)
-        q99 = data.quantile(1.00)
+        q01 = data.quantile(0.01)
+        q99 = data.quantile(0.99)
         data_clipped = data[(data >= q01) & (data <= q99)]
         
         # Plot

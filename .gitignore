@@ -230,3 +230,8 @@ data/archived/daily_features_intermediate/
 
 #VS Code
 .vscode/
+
+#test files
+test.py
+test2.py
+test3.py

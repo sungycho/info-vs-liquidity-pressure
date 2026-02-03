@@ -1,6 +1,6 @@
 # Microstructure-Based Price Pressure Decomposition
 
-[![DeepWiki](https://img.shields.io/badge/wiki-DeepWiki-blue)](https://deepwiki.com/sungycho/quant-lab)
+[![DeepWiki](https://img.shields.io/badge/wiki-DeepWiki-blue)](https://deepwiki.com/sungycho/info-vs-liquidity-pressure)
 
 ## Overview
 

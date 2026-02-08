@@ -19,24 +19,7 @@ features are constructed exclusively within this window. Post-event returns are
 used solely for evaluation and play no role in feature construction or pressure
 classification.
 
-\subsection{Data Acquisition and Preprocessing}
-
-\subsubsection{Data Sources}
-
-The analysis combines three primary datasets:
-\begin{itemize}
-    \item \textbf{WRDS TAQ (Trades and Quotes)}: Intraday transaction and NBBO
-    quote data used to measure order flow, spreads, and liquidity conditions.
-    \item \textbf{CRSP}: Daily returns, prices, market capitalization, and trading
-    volume.
-    \item \textbf{Earnings announcement data}: Firm-level earnings announcement
-    dates and timing used to identify events.
-\end{itemize}
-
-The sample is restricted to liquid large-cap U.S. equities to ensure reliable
-high-frequency measurement. Raw TAQ data are processed locally and aggregated to
-daily microstructure features; only processed feature files are retained for
-analysis.
+\subsection{Data Preprocessing}
 
 \subsubsection{Trade--Quote Cleaning and Alignment}
 

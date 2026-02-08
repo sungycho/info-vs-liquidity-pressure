@@ -1,0 +1,75 @@
+%========================================================
+% Section 2: Data
+%========================================================
+
+\section{Data}
+
+\subsection{Data Sources}
+
+The empirical analysis combines high-frequency market microstructure data with
+daily stock returns and corporate earnings announcement information. The primary
+data sources are:
+
+\begin{itemize}
+    \item \textbf{WRDS TAQ (Trades and Quotes)}: Intraday transaction and National
+    Best Bid and Offer (NBBO) quote data used to construct microstructure measures
+    of order flow, liquidity, and trading intensity.
+    \item \textbf{CRSP}: Daily stock returns, prices, shares outstanding, market
+    capitalization, and trading volume.
+    \item \textbf{Earnings announcement data}: Firm-level quarterly earnings
+    announcement dates and timing used to define event windows.
+\end{itemize}
+
+These datasets are merged using standard security identifiers and calendar
+alignment. All intraday TAQ data are processed locally; only aggregated daily
+features are retained for analysis.
+
+\subsection{Sample Construction}
+
+The sample consists of U.S. common equities drawn from a large-cap universe over
+the 2023--2024 period. To ensure reliable high-frequency measurement, we impose
+liquidity filters requiring consistent daily trading activity and valid intraday
+quote coverage. Securities with sparse trading, frequent trading halts, or
+persistent data quality issues are excluded.
+
+Earnings announcements are identified at the firm-quarter level. For each
+announcement, we construct a pre-event measurement window of trading days
+$[-10,-1]$ relative to the announcement date. Events are excluded if fewer than
+ten valid trading days of TAQ data are available within the pre-event window.
+
+The final sample comprises approximately several thousand earnings events across
+hundreds of firms. The exact number of events varies slightly across
+specifications due to data availability and filtering.
+
+\subsection{Event and Return Windows}
+
+Microstructure features are constructed exclusively using intraday data from the
+pre-announcement window $[-10,-1]$. No post-announcement information is used in
+feature construction or pressure classification.
+
+Post-announcement returns are measured using CRSP daily returns over multiple
+horizons, including short- and medium-term windows. These returns are used solely
+for evaluation in event-study and cross-sectional regression analyses.
+
+\subsection{Data Aggregation and Storage}
+
+Intraday TAQ data are aggregated to daily stock-level features prior to event-level
+processing. Daily features are then aggregated across the pre-event window to
+construct event-level summaries.
+
+To ensure transparency and reproducibility, all intermediate outputs are stored as
+standalone datasets. Raw TAQ data are not included in the repository due to size
+and licensing restrictions. The analysis relies exclusively on processed feature
+files and documented aggregation procedures.
+
+\subsection{Summary Statistics}
+
+Table~\ref{tab:summary_stats} reports summary statistics for key daily
+microstructure variables and event-level aggregates. Consistent with prior
+microstructure studies, order flow imbalance exhibits substantial cross-sectional
+and time-series variation, while spread and volume measures display significant
+heterogeneity across securities and events.
+
+Summary statistics are computed using the full sample of valid pre-announcement
+observations and are reported to provide context for the magnitude and dispersion
+of the constructed measures.

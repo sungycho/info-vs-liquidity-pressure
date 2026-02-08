@@ -1,0 +1,150 @@
+%========================================================
+% Section 3: Methodology
+%========================================================
+
+\section{Methodology}
+
+\subsection{Empirical Setting and Event Definition}
+
+The objective of this study is to decompose short-horizon price pressure into
+economically distinct components—\emph{information-driven} and
+\emph{liquidity-driven}—using market microstructure data. The empirical analysis
+is conducted in an event-study framework centered on corporate earnings
+announcements, which provide well-defined information events with well-documented
+post-announcement return dynamics \citep{BallBrown1968,BernardThomas1989}.
+
+For each earnings announcement, we define a pre-event measurement window of
+trading days $[-10,-1]$ relative to the announcement date. All microstructure
+features are constructed exclusively within this window. Post-event returns are
+used solely for evaluation and play no role in feature construction or pressure
+classification.
+
+\subsection{Data Acquisition and Preprocessing}
+
+\subsubsection{Data Sources}
+
+The analysis combines three primary datasets:
+\begin{itemize}
+    \item \textbf{WRDS TAQ (Trades and Quotes)}: Intraday transaction and NBBO
+    quote data used to measure order flow, spreads, and liquidity conditions.
+    \item \textbf{CRSP}: Daily returns, prices, market capitalization, and trading
+    volume.
+    \item \textbf{Earnings announcement data}: Firm-level earnings announcement
+    dates and timing used to identify events.
+\end{itemize}
+
+The sample is restricted to liquid large-cap U.S. equities to ensure reliable
+high-frequency measurement. Raw TAQ data are processed locally and aggregated to
+daily microstructure features; only processed feature files are retained for
+analysis.
+
+\subsubsection{Trade--Quote Cleaning and Alignment}
+
+Trades and quotes are cleaned using standard market microstructure filters
+\citep{Hasbrouck2007}. Specifically, we remove trades with abnormal condition
+codes, exclude quotes with zero or negative spreads, and eliminate locked or
+crossed markets. Each trade is aligned to the prevailing NBBO using the most
+recent valid quote prior to execution. This alignment is required for accurate
+spread measurement and trade classification.
+
+\subsection{Trade Classification and Order Flow Imbalance}
+
+\subsubsection{Lee--Ready Trade Classification}
+
+Trade direction is inferred using the Lee--Ready (1991) algorithm. Let $P_t$
+denote the trade price and $M_t = (A_t + B_t)/2$ the contemporaneous midpoint of
+the bid $B_t$ and ask $A_t$.
+
+Trades are classified as:
+\begin{itemize}
+    \item buyer-initiated if $P_t > M_t$,
+    \item seller-initiated if $P_t < M_t$,
+    \item midpoint trades resolved using a tick-test fallback.
+\end{itemize}
+
+Despite known limitations at very high frequencies, the Lee--Ready algorithm
+remains a standard benchmark for directional order flow estimation in equity
+markets \citep{LeeReady1991,OddersWhite2000,Hasbrouck2007}.
+
+\subsubsection{Daily Order Flow Imbalance}
+
+Using classified trades, we compute daily order flow imbalance (OFI) as:
+\begin{equation}
+\text{OFI}_d = 
+\frac{V^{\text{buy}}_d - V^{\text{sell}}_d}
+     {V^{\text{buy}}_d + V^{\text{sell}}_d},
+\end{equation}
+where $V^{\text{buy}}_d$ and $V^{\text{sell}}_d$ denote buyer- and seller-initiated
+traded volume on day $d$.
+
+OFI captures net directional trading pressure and is closely related to the
+theoretical concept of informed trading in \citet{Kyle1985} and the empirical
+price impact literature \citep{Hasbrouck1991}. Normalization ensures
+comparability across stocks and trading days.
+
+\subsection{Liquidity and Spread Measures}
+
+Liquidity conditions are measured using both quoted and effective spreads.
+The quoted spread is defined as:
+\begin{equation}
+\text{QS}_d = \frac{A_d - B_d}{M_d},
+\end{equation}
+where $A_d$, $B_d$, and $M_d$ denote daily averages of the ask, bid, and midpoint.
+
+The effective spread is computed as:
+\begin{equation}
+\text{ES}_d = 2 \times \frac{|P_t - M_t|}{M_t},
+\end{equation}
+averaged across trades.
+
+Quoted spreads capture posted liquidity, while effective spreads capture realized
+trading costs \citep{GlostenHarris1988}. Together, these measures allow us to
+distinguish directional trading that occurs with minimal liquidity disruption
+from trading associated with widening spreads and liquidity stress.
+
+\subsection{Volume and Trading Intensity}
+
+To capture trading intensity and potential liquidity shocks, we compute daily
+share volume, dollar volume, and volume scaled by recent historical averages.
+Abnormal volume episodes have long been associated with liquidity-driven price
+pressure and temporary price dislocations
+\citep{CampbellGrossmanWang1993}.
+
+\subsection{Event-Level Feature Aggregation}
+
+Daily microstructure measures are aggregated over the pre-announcement window
+$[-10,-1]$ to form event-level summaries. Aggregation emphasizes economic
+interpretability rather than statistical optimization.
+
+Key constructs include:
+\begin{itemize}
+    \item \textbf{Order flow persistence}: Stability of OFI sign and magnitude
+    across days, capturing gradual accumulation consistent with informed trading.
+    \item \textbf{Spread stability}: Absence of systematic spread widening during
+    periods of directional flow.
+    \item \textbf{Volume irregularity}: Presence of large, transient volume spikes.
+\end{itemize}
+
+These constructs reflect the economic distinction between patient,
+information-motivated trading and aggressive, liquidity-driven trading
+\citep{Kyle1985,AdmatiPfleiderer1988}.
+
+\subsection{Pressure Classification Framework}
+
+For each event, we construct two latent scores:
+\begin{itemize}
+    \item an \emph{information pressure score}, increasing in order flow
+    persistence and spread stability;
+    \item a \emph{liquidity pressure score}, increasing in volume bursts and
+    spread widening.
+\end{itemize}
+
+The final pressure score is defined as:
+\begin{equation}
+\text{Pressure}_i = \tanh(\text{InfoScore}_i - \text{LiqScore}_i),
+\end{equation}
+yielding a continuous measure bounded in $[-1, +1]$. Higher values indicate
+information-dominated pressure, while lower values indicate liquidity-dominated
+pressure. This formulation avoids arbitrary binary classification and aligns with
+evidence that informed and liquidity trading coexist to varying degrees
+\citep{Easley2012}.

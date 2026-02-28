@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Paths
 DAILY_FEATURES_PATH = "data/processed/daily_features.parquet"
 EVENT_TABLE_PATH = "data/processed/event_table.parquet"
-OUTPUT_PATH = "SC/A_event_features.parquet"
+OUTPUT_PATH = "Methods_Sung_Cho/A_event_features.parquet"
 
 # Config
 MIN_DAYS = 7

@@ -346,7 +346,7 @@ def main():
 
     # Save
 
-    output_path = Path('D_event_features.parquet')
+    output_path = Path('Methods_Sung_Cho/D_event_features.parquet')
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

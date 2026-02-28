@@ -494,7 +494,7 @@ if __name__ == "__main__":
     # ========================================================================
     
     # Load event features (Week 2 output)
-    event_file = "SC/D_event_features.parquet"
+    event_file = "Methods_Sung_Cho/D_event_features.parquet"
     print(f"\nLoading event data: {event_file}")
     
     try:

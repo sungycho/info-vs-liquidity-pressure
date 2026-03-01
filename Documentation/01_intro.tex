@@ -1,0 +1,99 @@
+% Suggested packages/settings (preamble):
+% \usepackage{natbib}
+% \bibliographystyle{apalike} % or any author-year style you prefer
+
+\section{Introduction}
+A large empirical literature documents that stock prices respond to earnings news with delay.
+In their seminal event-study analysis, \citet{BallBrown1968} show that accounting earnings contain
+information that is impounded into prices around public announcement dates, but that the full
+price response is not confined to the announcement window.
+Building on this foundation, \citet{BernardThomas1989} formalize and sharpen what became known
+as post-earnings-announcement drift (PEAD): after firms report positive (negative) earnings
+surprises, cumulative abnormal returns continue to drift upward (downward) over subsequent weeks
+and months.\footnote{\citet{BernardThomas1989} emphasize both the magnitude and persistence of the
+drift, and frame the core identification question as whether the pattern reflects delayed price response
+or compensation for risk; see their discussion of the empirical drift pattern and competing explanations.} %
+\citep{BernardThomas1989}. \textit{PEAD is therefore not primarily a question of whether earnings
+are informative, but why prices appear to incorporate that information slowly and heterogeneously
+across firms and events.}
+
+This paper brings a market microstructure lens to that heterogeneity. Microstructure models treat
+order flow as the key state variable through which private information and liquidity demands are
+transmitted into prices. In \citet{Kyle1985}, market makers do not observe whether a trade originates
+from an informed trader or from noise traders; prices are set as conditional expectations given the
+history of aggregate quantities, so price innovations are tied to order-flow innovations \citep{Kyle1985}. %
+\citet{GlostenMilgrom1985} formalize the adverse-selection channel in a specialist market:
+a bid--ask spread can arise even absent inventory costs because liquidity providers must be compensated
+for losses to better-informed traders \citep{GlostenMilgrom1985}. In this environment, transaction prices
+form a martingale relative to the specialist's information, so short-horizon return dynamics depend
+critically on whether observed price changes reflect information revelation or purely mechanical trading frictions
+\citep{GlostenMilgrom1985}. %
+Finally, \citet{Hasbrouck1991} provides an econometric implementation that explicitly separates
+\emph{transient} price effects (e.g., inventory control and other non-informational frictions) from
+\emph{persistent} effects that represent information being permanently impounded into prices:
+the information component of a trade is defined as the \emph{ultimate} price impact of the unexpected
+component of order flow \citep{Hasbrouck1991}.
+
+These microstructure insights suggest a natural connection to PEAD.
+If (part of) earnings-related information diffuses before the announcement---through informed trading,
+selective disclosure, or gradual learning---then pre-announcement trading should leave a distinct
+microstructure signature: sustained directional order flow whose price impact is largely \emph{permanent}.
+Conversely, if pre-announcement trading is dominated by liquidity shocks---indexing flows, hedging,
+fund flows, or inventory rebalancing---then order flow may move prices temporarily but should
+revert as liquidity conditions normalize, producing \emph{transient} pressure. %
+This distinction is closely aligned with Hasbrouck's conceptual separation between persistent
+(information) and transient (liquidity/frictions) components of price impact \citep{Hasbrouck1991},
+and with the adverse-selection logic of spreads in \citet{GlostenMilgrom1985}.
+It also clarifies how one can reconcile strong PEAD in some events with weak or absent PEAD in others:
+cross-sectional drift may depend not only on the magnitude of the earnings surprise, but on whether
+information about that surprise had already been partially incorporated through informed trading
+(or, alternatively, whether trading-induced price pressure in the pre-window was primarily non-informational).
+
+Despite this conceptual fit, the PEAD literature and microstructure literature are often empirically
+separated. PEAD studies typically parameterize news with an earnings-based signal such as standardized
+unexpected earnings (SUE) and study post-announcement return continuation \citep{BernardThomas1989}.
+Microstructure studies, in contrast, focus on how trades move prices (and how liquidity providers respond),
+often at intraday frequencies, with less emphasis on the cross-sectional heterogeneity of predictable
+post-event returns around known fundamental information events \citep{Kyle1985,GlostenMilgrom1985,Hasbrouck1991}. %
+A smaller set of papers examines order imbalance and return predictability, but generally outside the
+specific goal of explaining heterogeneity in PEAD conditional on earnings news. For example,
+\citet{ChordiaSubrahmanyam2004} show that lagged order imbalances predict short-horizon returns in ways
+consistent with autocorrelated trading demands and gradual accommodation by liquidity providers,
+with stronger effects in smaller firms \citep{ChordiaSubrahmanyam2004}. This evidence is suggestive:
+the same persistence-versus-reversal logic central to inventory and adverse-selection models may matter
+for how prices adjust around earnings events, yet existing work does not directly operationalize a
+\emph{pre-event} microstructure-based measure that can explain \emph{cross-sectional} PEAD variation
+beyond standard earnings-surprise measures.
+
+We address this gap by constructing a continuous, reduced-form \emph{pressure score} from intraday
+TAQ data in a fixed pre-announcement window. The score is designed to capture the relative intensity
+of information-driven versus liquidity-driven trading pressure prior to earnings announcements. %
+Motivated by \citet{Hasbrouck1991}, we build the score from microstructure signatures that proxy for
+(1) \emph{persistence} in signed order flow and its price impact (information-like) versus
+(2) \emph{burstiness} and liquidity deterioration such as spread widening contemporaneous with flow
+(liquidity shock / forced trading). The core output is an event-level scalar that varies continuously
+across earnings events.
+
+Empirically, we test whether this pressure score predicts heterogeneity in post-earnings return dynamics
+\emph{conditional} on earnings surprise. In other words, we ask whether microstructure-implied
+information intensity in the pre-window explains incremental variation in PEAD beyond SUE-based
+portfolio sorts. This design naturally admits two complementary interpretations.
+First, if the score reflects \emph{pre-leakage} or early information incorporation (in the spirit of
+\citet{Kyle1985} and \citet{Hasbrouck1991}), then high information pressure should be associated with
+weaker subsequent drift because more information has already been incorporated before the event.
+Second, if the score reflects \emph{how} information is incorporated (patient informed trading versus
+liquidity-driven dislocations), then information pressure may predict \emph{stronger} drift if
+information is only partially incorporated prior to the announcement and continues to diffuse afterward,
+consistent with the delayed-response interpretation emphasized in the PEAD debate \citep{BernardThomas1989}.
+Either way, the empirical object of interest is the \emph{interaction} between a fundamental news measure
+(SUE) and microstructure-based pressure, bringing the two literatures into a single event-study framework.
+
+\paragraph{Scope and positioning.}
+We do not attempt a structural identification of information versus liquidity components in the strict
+sense of estimating a full trade/quote system and attributing variance shares as in Hasbrouck-style VARs.
+Instead, we construct a reduced-form microstructure score designed to capture \emph{relative information
+intensity} prior to known information events. This choice is disciplined by microstructure theory
+(\citealp{Kyle1985}; \citealp{GlostenMilgrom1985}; \citealp{Hasbrouck1991}) but tailored to the empirical
+constraints and objective of explaining cross-sectional PEAD heterogeneity. The goal is a practical
+and interpretable bridge: a mapping from high-frequency trading signatures to predictable post-event
+return dynamics in the earnings setting.

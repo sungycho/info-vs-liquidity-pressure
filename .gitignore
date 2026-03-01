@@ -243,3 +243,9 @@ test3.py
 
 #documentation
 documentation/
+
+!Documentation/
+
+PCA/*
+
+PCA.py

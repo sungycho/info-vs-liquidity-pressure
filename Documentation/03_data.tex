@@ -1,0 +1,239 @@
+%========================================================
+% Section 2: Data
+%========================================================
+
+\section{Data}
+
+\subsection{Data Sources}
+
+We combine intraday market microstructure data with daily returns and firm-level earnings announcement dates.
+Intraday trades and quotes come from the WRDS NYSE TAQ database (TAQ Trades and TAQ Quotes).
+Daily stock returns and trading volume come from the CRSP daily stock file.
+Quarterly earnings announcement dates are from Compustat Fundamentals Quarterly, using the report date field $\texttt{fundq.rdq}$.
+Firm-to-security linkage is obtained from the CRSP--Compustat link history table $\texttt{ccmxpf\_lnkhist}$.
+
+All raw TAQ files are processed locally into daily and event-level aggregates.
+The empirical analysis uses only the aggregated daily features and event-level summaries defined below.
+
+\subsection{Universe, Period, and Event Definition}
+
+The equity universe consists of S\&P 500 constituents as recorded by CRSP in $\texttt{dsp500list}$.
+Let $j$ index CRSP securities (PERMNO). We include any security that is a constituent at any point during the sample window.
+
+Earnings events are defined at the firm-quarter level from Compustat.
+Let $i$ index earnings announcements, with announcement date $\mathrm{rdq}_i \in [\text{2023-01-01},\text{2024-12-31}]$ (calendar dates).
+To map firm-level Compustat events (GVKEY) to CRSP securities, we use $\texttt{ccmxpf\_lnkhist}$ and retain links with
+\[
+\texttt{linktype} \in \{\texttt{LU},\texttt{LC}\},\qquad
+\texttt{linkprim} \in \{\texttt{P},\texttt{C}\},
+\]
+requiring that the link-date range overlaps the event date $\mathrm{rdq}_i$.
+We then retain only events whose linked security belongs to the S\&P 500 universe.
+
+To construct pre-event features, rolling baselines, and post-event evaluation returns, we extract TAQ and CRSP data with a buffer that begins at least 20 trading days prior to the earliest event and extends through the longest post-event horizon.
+In some robustness checks, we optionally impose a liquidity screen based on average dollar volume; the baseline analysis does not apply this filter because the S\&P 500 universe is already highly liquid.
+
+\subsection{TAQ Cleaning and Trade-Quote Alignment}
+
+Let $d$ index trading days and let $t$ index intraday timestamps within day $d$, in Eastern Time (ET).
+We restrict TAQ trades and quotes to regular trading hours,
+\[
+t \in [09{:}30{:}00,\;16{:}00{:}00].
+\]
+
+\paragraph{Trades.}
+From TAQ Trades, we retain observations satisfying: (i) $\texttt{price}>0$, (ii) $\texttt{size}>0$, (iii) correction code $\texttt{tr\_corr}=\texttt{'00'}$, and (iv) exchange code in $\{\texttt{N},\texttt{Q},\texttt{A},\texttt{P},\texttt{Z}\}$.
+Denote the cleaned trade price and size by $(p_t,\text{size}_t)$.
+
+\paragraph{Quotes.}
+From TAQ Quotes, we retain observations satisfying: (i) $\texttt{bid}>0$, (ii) $\texttt{ask}>0$, (iii) $\texttt{ask}>\texttt{bid}$, and (iv) exchange code in $\{\texttt{N},\texttt{Q},\texttt{A},\texttt{P},\texttt{Z}\}$.
+For each quote observation, define the midpoint and relative quoted spread
+\begin{equation}
+m_t \equiv \frac{\text{ask}_t+\text{bid}_t}{2},\qquad
+s_t \equiv \frac{\text{ask}_t-\text{bid}_t}{m_t}.
+\end{equation}
+We remove quotes with $s_t \ge 0.50$.
+We then resample the remaining quotes to a 1-second grid using the last quote observed in each second, recompute $(m_t,s_t)$ on the grid, and re-apply the filter $s_t<0.50$ on the resampled series.
+
+\paragraph{Trade--quote alignment.}
+Each cleaned trade is matched to the prevailing quote midpoint using a backward (as-of) merge: for a trade at time $t$, we use the most recent resampled 1-second quote at time $t' \le t$ within a maximum tolerance of 5 seconds.
+Matched quotes provide the contemporaneous midpoint $m_t$ used for trade classification and the daily quote-based liquidity measures.
+
+\subsection{Trade Direction and OFI Construction}
+
+\paragraph{Lee--Ready trade sign.}
+Each cleaned trade is assigned a direction indicator $d_t \in \{+1,-1,0\}$ using a Lee--Ready-style procedure.
+First, we align each trade to the prevailing midpoint $m_t$ by backward as-of merge with a maximum 5-second tolerance.
+Second, we apply the quote rule:
+\[
+d_t=
+\begin{cases}
++1, & p_t>m_t,\\
+-1, & p_t<m_t,\\
+\tilde d_t, & p_t=m_t.
+\end{cases}
+\]
+Third, if $p_t=m_t$, we apply the tick test.
+Let $\Delta p_t \equiv p_t-p_{t-1}$ denote the price change relative to the immediately preceding cleaned trade for the same security and day. Then
+\[
+\tilde d_t=
+\begin{cases}
++1, & \Delta p_t>0,\\
+-1, & \Delta p_t<0,\\
+\text{ffill}(\tilde d_{t-1}), & \Delta p_t=0,
+\end{cases}
+\]
+where $\text{ffill}(\cdot)$ forward-fills the most recent nonzero direction within the day; if no such direction exists, we set $d_t=0$ (unknown).
+Trades without a matched quote within the 5-second tolerance are assigned $d_t=0$.
+
+\paragraph{Daily OFI.}
+Let $(j,d)$ denote security $j$ on trading day $d$, and let $t\in(j,d)$ index its cleaned trades.
+Define buyer-initiated and seller-initiated share volume as
+\begin{equation}
+V_{j,d}^{+} \equiv \sum_{t\in(j,d)} \text{size}_t\,\mathbf{1}[d_t=+1],\qquad
+V_{j,d}^{-} \equiv \sum_{t\in(j,d)} \text{size}_t\,\mathbf{1}[d_t=-1],
+\end{equation}
+and total share volume as
+\begin{equation}
+V_{j,d} \equiv \sum_{t\in(j,d)} \text{size}_t.
+\end{equation}
+Daily share-volume order flow imbalance (OFI) is
+\begin{equation}
+\mathrm{OFI}_{j,d} \equiv
+\begin{cases}
+\dfrac{V_{j,d}^{+}-V_{j,d}^{-}}{V_{j,d}}, & V_{j,d}>0,\\
+\text{missing}, & V_{j,d}=0,
+\end{cases}
+\qquad
+|\mathrm{OFI}_{j,d}| \equiv \left|\mathrm{OFI}_{j,d}\right|.
+\end{equation}
+Trades with $d_t=0$ contribute to $V_{j,d}$ but not to $V_{j,d}^{+}$ or $V_{j,d}^{-}$.
+
+\paragraph{Intraday OFI dispersion.}
+Partition the trading day into 30-minute buckets $b\in\mathcal{B}$.
+For each bucket, define
+\[
+\mathrm{OFI}_{j,d,b} \equiv
+\frac{V_{j,d,b}^{+}-V_{j,d,b}^{-}}{V_{j,d,b}},
+\qquad
+V_{j,d,b} \equiv \sum_{t\in(j,d,b)} \text{size}_t,
+\]
+with $V_{j,d,b}^{+}$ and $V_{j,d,b}^{-}$ defined analogously by restricting to trades in bucket $b$.
+Define intraday OFI dispersion as the standard deviation across buckets:
+\begin{equation}
+\mathrm{OFIstd}_{j,d} \equiv \mathrm{sd}_{b\in\mathcal{B}}\!\left(\mathrm{OFI}_{j,d,b}\right).
+\end{equation}
+
+\subsection{Feature Definitions (daily and event-level)}
+
+\paragraph{Daily quote-based liquidity features.}
+Using cleaned, 1-second resampled quotes for security $j$ on day $d$, with relative spread $s_t$ and absolute spread $(\text{ask}_t-\text{bid}_t)$, define
+\begin{align}
+\mathrm{SpreadMean}_{j,d} &\equiv \mathrm{mean}_t(s_t), &
+\mathrm{SpreadStd}_{j,d} &\equiv \mathrm{sd}_t(s_t), \label{eq:spread_mean_std}\\
+\mathrm{SpreadStab}_{j,d} &\equiv \frac{\mathrm{SpreadStd}_{j,d}}{\mathrm{SpreadMean}_{j,d}}, &
+\mathrm{QSpread}_{j,d} &\equiv \mathrm{mean}_t(\text{ask}_t-\text{bid}_t), \label{eq:spread_stab_qspread}\\
+\mathrm{SpreadP95}_{j,d} &\equiv \mathrm{Quantile}_{0.95,t}(s_t). &&
+\end{align}
+
+\paragraph{Daily trade-based volume and intensity features.}
+Using cleaned trades, define daily dollar volume and share volume as
+\begin{equation}
+\mathrm{DollarVol}_{j,d} \equiv \sum_{t\in(j,d)} p_t\,\text{size}_t,\qquad
+\mathrm{ShareVol}_{j,d} \equiv \sum_{t\in(j,d)} \text{size}_t.
+\end{equation}
+Let $\mathrm{NTrades}_{j,d}$ denote the number of cleaned trades and define average trade size by
+\[
+\mathrm{AvgTradeSize}_{j,d} \equiv \frac{\mathrm{ShareVol}_{j,d}}{\mathrm{NTrades}_{j,d}}
+\quad \text{(when }\mathrm{NTrades}_{j,d}>0\text{)}.
+\]
+Define the morning-share metric (using dollar volume before 12{:}00 ET) as
+\begin{equation}
+\mathrm{MorningShare}_{j,d} \equiv
+\frac{\sum_{t\in(j,d):\,t<12{:}00} p_t\,\text{size}_t}{\sum_{t\in(j,d)} p_t\,\text{size}_t},
+\end{equation}
+when the denominator is positive.
+
+\paragraph{Abnormal volume ratio.}
+Let $\mathrm{CRSPVol}_{j,d}$ denote CRSP daily share volume.
+Define a trailing baseline volume as the 20-trading-day rolling mean shifted by one day,
+\begin{equation}
+\mathrm{VolBase}_{j,d} \equiv \frac{1}{20}\sum_{k=1}^{20} \mathrm{CRSPVol}_{j,d-k},
+\end{equation}
+computed with a minimum of 10 available lagged observations.
+The abnormal volume ratio is
+\begin{equation}
+\mathrm{AbnVol}_{j,d} \equiv \frac{\mathrm{ShareVol}_{j,d}}{\mathrm{VolBase}_{j,d}}.
+\end{equation}
+
+\paragraph{Event-level aggregation over $[-10,-1]$.}
+Each earnings event $i$ is associated with a security $j(i)$ and an announcement date $\mathrm{rdq}_i$.
+Let $\tau$ index trading days relative to the event, where $\tau=-1$ is the last trading day strictly before $\mathrm{rdq}_i$ and $\tau=-10$ is the tenth trading day before.
+Let $\mathcal{D}_i^{-}\equiv\{d_{i,-10},\ldots,d_{i,-1}\}$ denote the pre-event trading-day window and let $N_i\equiv|\mathcal{D}_i^{-}|$ denote the number of valid pre-event days used in aggregation.
+Event-level summaries are defined as
+\begin{align}
+\mathrm{OFI\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{OFI}_{j(i),d}\right), &
+\mathrm{OFI\_abs\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(|\mathrm{OFI}_{j(i),d}|\right), \label{eq:event_ofi_means}\\
+\mathrm{OFI\_std\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{OFIstd}_{j(i),d}\right), &
+\mathrm{SpreadStab\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadStab}_{j(i),d}\right), \label{eq:event_spread_means}\\
+\mathrm{SpreadStd\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadStd}_{j(i),d}\right), &
+\mathrm{SpreadP95\_max}_i &\equiv \max_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadP95}_{j(i),d}\right), \label{eq:event_spread_tail}\\
+\mathrm{MorningShare\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{MorningShare}_{j(i),d}\right), &
+\mathrm{VolumeBurstFrac}_i &\equiv \frac{1}{N_i}\sum_{d\in\mathcal{D}_i^{-}} \mathbf{1}\!\left[\mathrm{AbnVol}_{j(i),d}>1.5\right]. \label{eq:event_volume_burst}
+\end{align}
+
+\paragraph{Order-flow persistence.}
+Our primary persistence measure is the lag-1 autocorrelation of daily OFI within the pre-event window:
+\begin{equation}
+\phi_i \equiv \mathrm{Corr}\!\left(\mathrm{OFI}_{j(i),d},\,\mathrm{OFI}_{j(i),d-1}\right),\qquad d\in\mathcal{D}_i^{-},
+\end{equation}
+where $d-1$ denotes the previous trading day for the same security within the pre-event window.
+As a robustness alternative, we also consider the signal-to-noise ratio $\mathrm{mean}(\mathrm{OFI}_{j(i),d})/\mathrm{sd}(\mathrm{OFI}_{j(i),d})$ over $d\in\mathcal{D}_i^{-}$.
+
+\subsection{Event and Return Windows}
+
+Pre-event microstructure features are constructed using only intraday data from trading days $\tau\in\{-10,\ldots,-1\}$ relative to $\mathrm{rdq}_i$.
+This design avoids look-ahead: no post-announcement trades, quotes, or returns enter the feature construction.
+
+Post-event evaluation uses CRSP daily returns.
+Let $\tau=0$ denote the first trading day on or after the calendar announcement date $\mathrm{rdq}_i$ (handling announcements on non-trading days and after-hours).
+For horizon $H\in\{5,20\}$, cumulative event return is
+\begin{equation}
+R_i[0,H] \equiv \prod_{\tau=0}^{H-1} (1+r_{i,\tau}) - 1,
+\end{equation}
+where $r_{i,\tau}$ is the CRSP daily return for security $j(i)$ on event time $\tau$.
+
+\subsection{Final Analysis Sample / Missingness rules}
+
+A pre-event window contains at most 10 trading days.
+We retain event $i$ if at least 7 valid pre-event days are available, i.e., $N_i\ge 7$.
+Daily features for a given $(j,d)$ are treated as missing if required intraday inputs are unavailable (e.g., no cleaned trades for trade-based variables, or no cleaned resampled quotes for quote-based variables).
+Event-level features are computed by aggregating across the available valid days in $\mathcal{D}_i^{-}$.
+
+The final analysis sample contains $\#\mathrm{EVENTS}$ earnings events from $\#\mathrm{FIRMS}$ unique firms (and associated CRSP securities), subject to the universe definition, link validity, and pre-event data availability.
+
+\begin{table}[!t]
+\centering
+\caption{Notation summary.}
+\label{tab:data_notation}
+\begin{tabular}{ll}
+\hline
+\textbf{Symbol} & \textbf{Definition} \\
+\hline
+$i$ & Earnings announcement (event) index; event date $\mathrm{rdq}_i$ (Compustat $\texttt{fundq.rdq}$) \\
+$j$ & CRSP security (PERMNO) index \\
+$d$ & Trading day index; event time $\tau$ counts trading days relative to $\mathrm{rdq}_i$ \\
+$t$ & Intraday timestamp (ET) within regular hours \\
+$p_t,\ \text{size}_t$ & Cleaned TAQ trade price and share size \\
+$\text{bid}_t,\ \text{ask}_t$ & Cleaned TAQ quote bid and ask (resampled to 1-second grid) \\
+$m_t$ & Quote midpoint, $(\text{ask}_t+\text{bid}_t)/2$ \\
+$s_t$ & Relative quoted spread, $(\text{ask}_t-\text{bid}_t)/m_t$ \\
+$d_t$ & Trade sign in $\{+1,-1,0\}$ (buy/sell/unknown) \\
+$V_{j,d}^{+},V_{j,d}^{-},V_{j,d}$ & Daily buy/sell/total share volume from cleaned TAQ trades \\
+$\mathrm{OFI}_{j,d}$ & Daily OFI, $(V_{j,d}^{+}-V_{j,d}^{-})/V_{j,d}$ \\
+$\mathrm{OFIstd}_{j,d}$ & Std.\ dev.\ of 30-minute bucket OFI within day $d$ \\
+$\phi_i$ & Pre-event OFI persistence: lag-1 autocorrelation within $\tau\in\{-10,\ldots,-1\}$ \\
+$R_i[0,H]$ & Post-event cumulative return over $H\in\{5,20\}$ trading days starting at $\tau=0$ \\
+\hline
+\end{tabular}
+\end{table}

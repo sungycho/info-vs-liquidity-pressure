@@ -1,0 +1,77 @@
+
+\section{Literature Review}
+
+\subsection{PEAD and the information content of earnings}
+The earnings-announcement literature begins with the recognition that accounting earnings convey
+value-relevant information. \citet{BallBrown1968} provide early evidence that stock prices react around
+earnings announcement dates, and they develop a prototype event-study methodology that traces abnormal
+performance indices around announcements using CRSP returns and announcement dates \citep{BallBrown1968}.
+Their findings establish that public earnings releases are meaningful information events and motivate
+later work that focuses on the \emph{dynamics} of the price response rather than its existence.
+
+Post-earnings-announcement drift is most prominently documented and analyzed by \citet{BernardThomas1989}.
+They show that abnormal returns continue to drift after earnings announcements in a manner monotonic
+in earnings surprise deciles, and frame the central interpretive debate as delayed price response versus
+risk compensation \citep{BernardThomas1989}. A key methodological theme is that inference about
+predictability is sensitive to portfolio formation and risk adjustment. This concern matters for our
+setting because a microstructure-based signal could mechanically correlate with liquidity, size, or
+trading frictions that confound abnormal-return measurement. Accordingly, our empirical design treats
+earnings surprise as the baseline news variable and asks whether microstructure-implied pressure adds
+incremental explanatory power for post-event returns beyond standard PEAD controls and specifications.
+
+\subsection{Market microstructure and information in order flow}
+Microstructure theory provides a language for distinguishing information revelation from liquidity demand.
+In \citet{GlostenMilgrom1985}, a competitive specialist sets bid and ask prices facing heterogeneously
+informed traders; the bid--ask spread can arise purely from adverse selection, and transaction prices
+form a martingale with respect to the specialist's information \citep{GlostenMilgrom1985}. This framework
+motivates using spreads and quote dynamics as proxies for information asymmetry: when the probability of
+trading against informed traders rises, liquidity providers protect themselves by widening spreads and
+adjusting quotes more aggressively.
+
+\citet{Kyle1985} offers a complementary perspective in a dynamic auction setting with a strategic insider,
+noise traders, and competitive market makers. The market maker observes only aggregate order flow, so
+price changes are driven by innovations in order flow, and informed traders optimally trade gradually to
+hide within noise \citep{Kyle1985}. This gradualism is central for our project: if informed traders split
+orders over time, pre-announcement order flow may be persistent and directional without necessarily
+creating immediate, easily detectable price jumps. Therefore, microstructure signatures of information
+pressure should emphasize persistence and the mapping from signed flow to price changes, rather than
+isolated bursts of volume alone.
+
+\citet{Hasbrouck1991} bridges theory and empirics by proposing a formal decomposition of trade impact into
+transient and persistent components. Inventory-control and other non-informational effects are inherently
+transient, while asymmetric-information effects are permanently impounded in prices; thus, the information
+impact of a trade is best measured by the \emph{persistent} price impact of the \emph{unexpected} component
+of order flow \citep{Hasbrouck1991}. The emphasis on innovations (unanticipated trades) is directly relevant
+to our construction: a predictable component of flow can reflect routine liquidity provision or mechanical
+trading patterns, whereas unexpected, persistent directional flow is more plausibly linked to information.
+
+\subsection{Order-flow predictability and informed trading metrics}
+A closely related empirical literature studies how order imbalances predict returns and how this relation
+depends on liquidity provision. \citet{ChordiaSubrahmanyam2004} analyze daily order imbalances and show that
+lagged imbalances predict daily returns, consistent with autocorrelated trading demands and gradual market
+maker accommodation; they also emphasize stronger effects in smaller firms where markets absorb imbalances
+less expeditiously \citep{ChordiaSubrahmanyam2004}. This evidence is informative for our setting because it
+suggests a practical, reduced-form route to distinguish informational from non-informational pressure:
+persistent imbalances coupled with stable liquidity conditions can generate continuation, whereas imbalances
+that coincide with liquidity deterioration (e.g., spread widening) may be more consistent with inventory or
+forced-trading channels that reverse.
+
+An alternative family of approaches seeks to infer informed trading intensity more directly from trade data.
+The probability of informed trading (PIN) literature models trading as a game between liquidity providers
+and traders, with latent information events affecting the composition of order flow. Building on this line,
+\citet{EasleyLopezdePradoOHara2012} propose VPIN, a volume-synchronized measure of order-flow ``toxicity''
+intended to track the risk that liquidity providers face from informed trading and to forecast periods of
+heightened adverse selection and volatility \citep{EasleyLopezdePradoOHara2012}. While VPIN is not our primary
+object, it reinforces a central theme: information risk manifests through the \emph{interaction} of signed
+flow with liquidity provision, and market makers respond endogenously when they suspect informed trading.
+
+\paragraph{Positioning of the present paper.}
+We do not attempt structural identification of information versus liquidity (as in Hasbrouck-style VAR
+decompositions of permanent and transitory components). Instead, we build a reduced-form microstructure
+score designed to capture \emph{relative information intensity} prior to known information events. The score
+is motivated by (i) adverse-selection and liquidity-provider response (\citealp{GlostenMilgrom1985}),
+(ii) gradual informed trading embedded in noise (\citealp{Kyle1985}), and (iii) the idea that information
+effects are measured by persistent impacts of unexpected flow (\citealp{Hasbrouck1991}). We then bring this
+microstructure measure into the PEAD setting (\citealp{BallBrown1968}; \citealp{BernardThomas1989}) to test
+whether pre-event trading pressure helps explain cross-sectional variation in post-earnings return drift
+beyond earnings-surprise measures.

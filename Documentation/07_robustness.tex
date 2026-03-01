@@ -1,0 +1,148 @@
+%========================================================
+% Section 7: Robustness
+%========================================================
+
+\section{Robustness}
+
+This section evaluates whether the pressure score remains informative under
+alternative inference choices and after controlling for earnings-surprise
+information. All robustness tests are implemented in
+\texttt{Methods\_Sung\_Cho/run\_continuous\_regression.py} and
+\texttt{Methods\_Sung\_Cho/run\_continuous\_regression\_with\_sue.py}, with
+outputs in
+\texttt{data/results/continuous\_regression\_summary.csv} and
+\texttt{data/results/continuous\_regression\_with\_sue.csv}.
+
+\subsection{Continuous Regressions with Alternative Clustered Inference}
+
+For each construction method $m\in\{A,B,C,D\}$, we run the pooled event-level
+regression
+\begin{equation}
+R^{(20)}_i = \alpha_m + \beta_m P^{(m)}_i + \varepsilon_i,
+\label{eq:robust_baseline_raw}
+\end{equation}
+where $R^{(20)}_i$ is the 20-trading-day forward cumulative return and
+$P^{(m)}_i$ is the method-specific pressure score. The code also estimates the
+standardized effect
+\begin{equation}
+\widetilde P^{(m)}_i = \frac{P^{(m)}_i-\bar P^{(m)}}{s(P^{(m)})},
+\qquad
+R^{(20)}_i = \alpha_m + \beta^{\text{std}}_m\widetilde P^{(m)}_i + \varepsilon_i,
+\label{eq:robust_baseline_std}
+\end{equation}
+so $\beta^{\text{std}}_m$ is the return change from a one-standard-deviation
+increase in pressure.
+
+To ensure inference is not driven by a single dependence structure, we report
+three covariance estimators for each $\beta$:
+\begin{equation}
+\widehat{\mathrm{Var}}_c(\hat\beta)
+=(X'X)^{-1}\left(\sum_{g=1}^{G_c} X_g'\hat u_g\hat u_g'X_g\right)(X'X)^{-1},
+\end{equation}
+with clustering dimension $c\in\{\text{firm},\text{date}\}$, and the
+Cameron--Gelbach--Miller two-way combination
+\begin{equation}
+\widehat{\mathrm{Var}}_{2\mathrm{w}}(\hat\beta)
+=\widehat{\mathrm{Var}}_{\text{firm}}(\hat\beta)
++\widehat{\mathrm{Var}}_{\text{date}}(\hat\beta)
+-\widehat{\mathrm{Var}}_{\text{firm}\times\text{date}}(\hat\beta),
+\label{eq:cgm_vcov}
+\end{equation}
+where the intersection cluster uses the combined label
+$(\text{permno},\text{event\_date})$. The reported $t$-statistic is
+$t=\hat\beta/\widehat{\mathrm{se}}(\hat\beta)$.
+
+\begin{table}[!t]
+\centering
+\caption{Baseline pressure regression robustness (20-day forward return).
+$N=4{,}147$ events for each method.}
+\label{tab:robust_baseline}
+\begin{tabular}{lrrrrrr}
+\hline
+Method & $\beta^{\text{std}}$ & $t_{\text{firm}}$ & $t_{\text{date}}$ & $t_{2\mathrm{w}}$ & $R^2$ \\
+\hline
+A & -0.00413 & -2.323 & -2.341 & -2.236 & 0.00155 \\
+B & -0.00407 & -2.011 & -2.415 & -2.401 & 0.00151 \\
+C & -0.00020 & -0.117 & -0.118 & -0.123 & 0.00000 \\
+D & -0.00595 & -3.321 & -3.130 & -3.162 & 0.00322 \\
+\hline
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:robust_baseline} shows that methods A, B, and D produce a
+negative pressure-return slope under all three covariance estimators, while
+method C is economically and statistically negligible. Method D is strongest
+($\beta^{\text{std}}=-0.00595$, $t_{2\mathrm{w}}=-3.162$).
+
+\subsection{SUE-Control Robustness and Interaction Test}
+
+We next test whether the pressure signal survives when controlling for
+standardized unexpected earnings (SUE). SUE is built from Compustat quarterly
+EPS (\texttt{epsfxq}) using the seasonal-random-walk construction
+\citep{BernardThomas1989}:
+\begin{align}
+\Delta \mathrm{EPS}_{f,q} &\equiv \mathrm{EPS}_{f,q}-\mathrm{EPS}_{f,q-4},\\
+\mathrm{SUE}_{f,q} &\equiv
+\frac{\Delta \mathrm{EPS}_{f,q}}{\mathrm{sd}\!\left(\Delta \mathrm{EPS}_{f,q-7:q}\right)}.
+\end{align}
+In implementation, the denominator is an 8-quarter rolling standard deviation
+(with minimum 4 observations), and raw SUE is winsorized to $[-10,10]$ before
+standardization:
+\begin{equation}
+\widetilde{\mathrm{SUE}}_i
+=\frac{\mathrm{SUE}_i-\overline{\mathrm{SUE}}}{s(\mathrm{SUE})}.
+\end{equation}
+
+On the matched sample ($N=4{,}130$), we estimate
+\begin{align}
+\text{Spec 1: }\;
+R^{(20)}_i
+&= \alpha + \beta_1\widetilde P_i + \beta_2\widetilde{\mathrm{SUE}}_i + \varepsilon_i,
+\label{eq:sue_spec1}\\
+\text{Spec 2: }\;
+R^{(20)}_i
+&= \alpha + \beta_1\widetilde P_i + \beta_2\widetilde{\mathrm{SUE}}_i
++ \beta_3\left(\widetilde P_i\times\widetilde{\mathrm{SUE}}_i\right) + \varepsilon_i,
+\label{eq:sue_spec2}
+\end{align}
+with the same firm, date, and two-way clustered inference as in
+Eq.~\eqref{eq:cgm_vcov}.
+
+\begin{table}[!t]
+\centering
+\caption{SUE-control robustness using two-way clustered (CGM) $t$-statistics.
+$N=4{,}130$ events for all rows.}
+\label{tab:robust_sue}
+\small
+\begin{tabular}{llrrrrrr}
+\hline
+Method & Spec & $\beta_P$ & $t_P$ & $\beta_{\mathrm{SUE}}$ & $t_{\mathrm{SUE}}$ & $\beta_{P\times S}$ & $t_{P\times S}$ \\
+\hline
+A & 1 & -0.00347 & -1.896 & 0.01055 & 5.919 & -- & -- \\
+A & 2 & -0.00348 & -1.898 & 0.01023 & 5.679 & -0.00311 & -2.033 \\
+B & 1 & -0.00423 & -2.488 & 0.01077 & 5.669 & -- & -- \\
+B & 2 & -0.00405 & -2.364 & 0.01089 & 5.723 & -0.00456 & -3.042 \\
+C & 1 & -0.00063 & -0.372 & 0.01074 & 5.614 & -- & -- \\
+C & 2 & -0.00060 & -0.353 & 0.01089 & 5.842 & -0.00153 & -1.204 \\
+D & 1 & -0.00619 & -3.334 & 0.01083 & 6.133 & -- & -- \\
+D & 2 & -0.00615 & -3.307 & 0.01091 & 6.210 & -0.00394 & -2.513 \\
+\hline
+\end{tabular}
+\end{table}
+
+Three conclusions follow from Table~\ref{tab:robust_sue}. First, the SUE term is
+strongly positive in every method ($t\approx 5.6$ to $6.6$ across clustering
+choices), confirming that earnings-surprise information is priced in the sample.
+Second, pressure remains negative in all specifications, and remains clearly
+significant for methods B and D after SUE controls under two-way clustering;
+method A is borderline and method C remains weak. Third, the interaction term is
+negative and significant for methods A, B, and D, implying that the return
+sensitivity to pressure becomes more negative when earnings surprise is higher.
+
+\subsection{Overall Robustness Assessment}
+
+Across both robustness exercises, the ranking of pressure constructions is
+stable: method D is strongest, methods A and B are informative but weaker, and
+method C is not robustly predictive. The key result is that the pressure score
+is not an artifact of a specific standard-error estimator and is not fully
+subsumed by a standard earnings-surprise control.

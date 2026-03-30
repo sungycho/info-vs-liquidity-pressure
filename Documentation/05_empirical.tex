@@ -1,7 +1,3 @@
-%========================================================
-% Section 5: Empirical Design
-%========================================================
-
 \section{Empirical Design}
 
 \subsection{Regression Framework}
@@ -34,3 +30,9 @@ This framework allows us to test whether:
 \end{itemize}
 
 Standard errors are computed using heteroskedasticity-robust estimators.
+
+Additionally, we further estimate interaction specifications to test whether the effect of pressure depends on the magnitude of earnings news:
+
+\begin{equation}
+R_{i,t \rightarrow t+H} = \alpha + \beta_1 \cdot \text{PressureScore}_{i,t} + \beta_2 \cdot \text{SUE}_{i,t} + \beta_3 \cdot (\text{PressureScore}_{i,t} \times \text{SUE}_{i,t}) + \epsilon_{i,t}
+\end{equation}

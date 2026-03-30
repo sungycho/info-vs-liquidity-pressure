@@ -131,3 +131,37 @@ information-dominated pressure, while lower values indicate liquidity-dominated
 pressure. This formulation avoids arbitrary binary classification and aligns with
 evidence that informed and liquidity trading coexist to varying degrees
 \citep{Easley2012}.
+
+\subsection{Latent Structure via Principal Component Analysis}
+
+While the pressure classification framework is constructed from economically motivated microstructure features, these variables are inherently high-dimensional and potentially collinear. To address this, we complement the structural approach with a statistical dimensionality reduction using Principal Component Analysis (PCA).
+
+Let $X \in \mathbb{R}^{N \times K}$ denote the matrix of standardized microstructure features, where $N$ indexes event observations and $K$ denotes the number of features (e.g., OFI, spreads, volume metrics, liquidity proxies). PCA decomposes $X$ as:
+
+\begin{equation}
+X = ZW'
+\end{equation}
+
+where $Z$ contains orthogonal principal components and $W$ contains the corresponding loadings.
+
+The principal components are constructed as linear combinations of the original features:
+
+\begin{equation}
+PC_j = X w_j
+\end{equation}
+
+where $w_j$ is the eigenvector associated with the $j$-th largest eigenvalue of the covariance matrix of $X$.
+
+\paragraph{Economic Interpretation}
+
+We interpret the leading components as latent drivers of trading behavior:
+
+\begin{itemize}
+    \item The first component ($PC_1$) typically captures persistent directional order flow and is associated with information-driven trading.
+    \item The second component ($PC_2$) often reflects liquidity stress, characterized by spread widening and volume bursts.
+    \item Higher-order components capture residual variation and microstructure noise.
+\end{itemize}
+
+This step serves two purposes. First, it validates whether the proposed information versus liquidity decomposition is supported by the data. Second, it provides orthogonal factors that can be used in subsequent regression analysis to mitigate multicollinearity.
+
+Importantly, PCA is not used as a black-box prediction tool, but rather as a diagnostic and validation layer for the economically motivated pressure classification framework.

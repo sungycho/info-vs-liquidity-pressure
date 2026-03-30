@@ -1,7 +1,3 @@
-%========================================================
-% Section 2: Data
-%========================================================
-
 \section{Data}
 
 \subsection{Data Sources}
@@ -171,16 +167,18 @@ Each earnings event $i$ is associated with a security $j(i)$ and an announcement
 Let $\tau$ index trading days relative to the event, where $\tau=-1$ is the last trading day strictly before $\mathrm{rdq}_i$ and $\tau=-10$ is the tenth trading day before.
 Let $\mathcal{D}_i^{-}\equiv\{d_{i,-10},\ldots,d_{i,-1}\}$ denote the pre-event trading-day window and let $N_i\equiv|\mathcal{D}_i^{-}|$ denote the number of valid pre-event days used in aggregation.
 Event-level summaries are defined as
-\begin{align}
-\mathrm{OFI\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{OFI}_{j(i),d}\right), &
-\mathrm{OFI\_abs\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(|\mathrm{OFI}_{j(i),d}|\right), \label{eq:event_ofi_means}\\
-\mathrm{OFI\_std\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{OFIstd}_{j(i),d}\right), &
-\mathrm{SpreadStab\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadStab}_{j(i),d}\right), \label{eq:event_spread_means}\\
-\mathrm{SpreadStd\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadStd}_{j(i),d}\right), &
-\mathrm{SpreadP95\_max}_i &\equiv \max_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadP95}_{j(i),d}\right), \label{eq:event_spread_tail}\\
-\mathrm{MorningShare\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{MorningShare}_{j(i),d}\right), &
-\mathrm{VolumeBurstFrac}_i &\equiv \frac{1}{N_i}\sum_{d\in\mathcal{D}_i^{-}} \mathbf{1}\!\left[\mathrm{AbnVol}_{j(i),d}>1.5\right]. \label{eq:event_volume_burst}
-\end{align}
+\begin{equation}
+\begin{aligned}
+\mathrm{OFI\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{OFI}_{j(i),d}\right), \\
+\mathrm{OFI\_abs\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(|\mathrm{OFI}_{j(i),d}|\right), \\
+\mathrm{OFI\_std\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{OFIstd}_{j(i),d}\right), \\
+\mathrm{SpreadStab\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadStab}_{j(i),d}\right), \\
+\mathrm{SpreadStd\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadStd}_{j(i),d}\right), \\
+\mathrm{SpreadP95\_max}_i &\equiv \max_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{SpreadP95}_{j(i),d}\right), \\
+\mathrm{MorningShare\_mean}_i &\equiv \mathrm{mean}_{d\in\mathcal{D}_i^{-}}\!\left(\mathrm{MorningShare}_{j(i),d}\right), \\
+\mathrm{VolumeBurstFrac}_i &\equiv \frac{1}{N_i}\sum_{d\in\mathcal{D}_i^{-}} \mathbf{1}\!\left[\mathrm{AbnVol}_{j(i),d}>1.5\right].
+\end{aligned}
+\end{equation}
 
 \paragraph{Order-flow persistence.}
 Our primary persistence measure is the lag-1 autocorrelation of daily OFI within the pre-event window:
@@ -216,11 +214,12 @@ The final analysis sample contains $\#\mathrm{EVENTS}$ earnings events from $\#\
 \centering
 \caption{Notation summary.}
 \label{tab:data_notation}
-\begin{tabular}{ll}
+\begin{tabular}{l p{10cm}}
 \hline
 \textbf{Symbol} & \textbf{Definition} \\
 \hline
-$i$ & Earnings announcement (event) index; event date $\mathrm{rdq}_i$ (Compustat $\texttt{fundq.rdq}$) \\
+$i$ & Earnings announcement (event) index; event date $\mathrm{rdq}_i$ 
+\newline (Compustat $\texttt{fundq.rdq}$) \\
 $j$ & CRSP security (PERMNO) index \\
 $d$ & Trading day index; event time $\tau$ counts trading days relative to $\mathrm{rdq}_i$ \\
 $t$ & Intraday timestamp (ET) within regular hours \\

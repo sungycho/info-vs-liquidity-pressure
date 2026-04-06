@@ -1,0 +1,115 @@
+Method A
+--------------------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:         pressure_score   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                 -0.000
+Method:                 Least Squares   F-statistic:                    0.7271
+Date:                Sun, 01 Mar 2026   Prob (F-statistic):              0.394
+Time:                        14:00:42   Log-Likelihood:                -4440.7
+No. Observations:                4181   AIC:                             8885.
+Df Residuals:                    4179   BIC:                             8898.
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==================================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+----------------------------------------------------------------------------------
+const             -0.1292      0.172     -0.750      0.453      -0.467       0.209
+log_market_cap     0.0084      0.010      0.853      0.394      -0.011       0.028
+==============================================================================
+Omnibus:                    25916.248   Durbin-Watson:                   1.650
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              394.990
+Skew:                          -0.042   Prob(JB):                     1.69e-86
+Kurtosis:                       1.497   Cond. No.                         278.
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+Method B
+--------------------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:         pressure_score   R-squared:                       0.016
+Model:                            OLS   Adj. R-squared:                  0.016
+Method:                 Least Squares   F-statistic:                     69.22
+Date:                Sun, 01 Mar 2026   Prob (F-statistic):           1.18e-16
+Time:                        14:00:42   Log-Likelihood:                 989.20
+No. Observations:                4167   AIC:                            -1974.
+Df Residuals:                    4165   BIC:                            -1962.
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==================================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+----------------------------------------------------------------------------------
+const              0.3937      0.047      8.307      0.000       0.301       0.487
+log_market_cap    -0.0227      0.003     -8.320      0.000      -0.028      -0.017
+==============================================================================
+Omnibus:                       28.567   Durbin-Watson:                   1.528
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               28.697
+Skew:                          -0.193   Prob(JB):                     5.87e-07
+Kurtosis:                       2.870   Cond. No.                         280.
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+Method C
+--------------------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:         pressure_score   R-squared:                       0.056
+Model:                            OLS   Adj. R-squared:                  0.056
+Method:                 Least Squares   F-statistic:                     247.1
+Date:                Sun, 01 Mar 2026   Prob (F-statistic):           3.95e-54
+Time:                        14:00:43   Log-Likelihood:                -2358.9
+No. Observations:                4167   AIC:                             4722.
+Df Residuals:                    4165   BIC:                             4735.
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==================================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+----------------------------------------------------------------------------------
+const              1.6562      0.106     15.647      0.000       1.449       1.864
+log_market_cap    -0.0957      0.006    -15.719      0.000      -0.108      -0.084
+==============================================================================
+Omnibus:                      363.683   Durbin-Watson:                   1.519
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              116.133
+Skew:                           0.070   Prob(JB):                     6.05e-26
+Kurtosis:                       2.194   Cond. No.                         280.
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+Method D
+--------------------------------------------------------------------------------
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:         pressure_score   R-squared:                       0.008
+Model:                            OLS   Adj. R-squared:                  0.008
+Method:                 Least Squares   F-statistic:                     33.41
+Date:                Sun, 01 Mar 2026   Prob (F-statistic):           8.02e-09
+Time:                        14:00:43   Log-Likelihood:                -3875.9
+No. Observations:                4181   AIC:                             7756.
+Df Residuals:                    4179   BIC:                             7768.
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==================================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+----------------------------------------------------------------------------------
+const              0.8466      0.151      5.624      0.000       0.551       1.142
+log_market_cap    -0.0500      0.009     -5.780      0.000      -0.067      -0.033
+==============================================================================
+Omnibus:                     2449.967   Durbin-Watson:                   1.515
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              236.319
+Skew:                          -0.076   Prob(JB):                     4.83e-52
+Kurtosis:                       1.845   Cond. No.                         278.
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+

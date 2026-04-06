@@ -1,38 +1,8 @@
+%========================================================
+% Section 5: Empirical Design
+%========================================================
+
 \section{Empirical Design}
 
-\subsection{Regression Framework}
+WIP
 
-To quantify the predictive content of microstructure-based measures, we estimate cross-sectional regressions of post-earnings returns on both the constructed pressure score and the extracted principal components.
-
-The baseline specification is:
-
-\begin{equation}
-R_{i,t \rightarrow t+H} = \alpha + \beta_1 \cdot \text{PressureScore}_{i,t} + \gamma' \mathbf{X}_{i,t} + \epsilon_{i,t}
-\end{equation}
-
-where $R_{i,t \rightarrow t+H}$ denotes cumulative returns over horizon $H \in \{5,20\}$ trading days, and $\mathbf{X}_{i,t}$ includes control variables such as size, momentum, and volatility.
-
-To further investigate the latent structure, we estimate:
-
-\begin{equation}
-R_{i,t \rightarrow t+H} = \alpha + \sum_{k=1}^{K} \beta_k \cdot PC_{k,i,t} + \epsilon_{i,t}
-\end{equation}
-
-where $PC_k$ are the principal components derived from the microstructure feature space.
-
-\paragraph{Interpretation}
-
-This framework allows us to test whether:
-\begin{itemize}
-    \item The economically constructed pressure score has predictive power for returns
-    \item The latent factors extracted via PCA carry incremental explanatory power
-    \item The mapping between statistical factors and economic mechanisms (information vs liquidity) is empirically supported
-\end{itemize}
-
-Standard errors are computed using heteroskedasticity-robust estimators.
-
-Additionally, we further estimate interaction specifications to test whether the effect of pressure depends on the magnitude of earnings news:
-
-\begin{equation}
-R_{i,t \rightarrow t+H} = \alpha + \beta_1 \cdot \text{PressureScore}_{i,t} + \beta_2 \cdot \text{SUE}_{i,t} + \beta_3 \cdot (\text{PressureScore}_{i,t} \times \text{SUE}_{i,t}) + \epsilon_{i,t}
-\end{equation}

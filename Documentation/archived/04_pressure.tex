@@ -1,3 +1,7 @@
+%========================================================
+% Section 4: Microstructure-Based Pressure Measure
+%========================================================
+
 \section{Methodology}
 
 \subsection{Empirical Setting and Event Definition}
@@ -127,43 +131,3 @@ information-dominated pressure, while lower values indicate liquidity-dominated
 pressure. This formulation avoids arbitrary binary classification and aligns with
 evidence that informed and liquidity trading coexist to varying degrees
 \citep{Easley2012}.
-
-\subsection{Latent Structure via Principal Component Analysis}
-
-While the pressure score is constructed using economically motivated feature aggregation, it remains an empirical question whether the underlying feature space exhibits a structure consistent with the proposed distinction between information-driven and liquidity-driven trading. To address this, we apply principal component analysis (PCA) to the standardized event-level feature matrix.
-
-Let $X \in \mathbb{R}^{N \times K}$ denote the matrix of standardized microstructure features, where $N$ indexes events and $K$ denotes the number of features. PCA decomposes the feature space as:
-\begin{equation}
-X = Z W',
-\end{equation}
-where $Z$ contains orthogonal principal components and $W$ contains the corresponding loadings.
-
-Each principal component is a linear combination of the original features:
-\begin{equation}
-PC_j = X w_j,
-\end{equation}
-where $w_j$ is the eigenvector associated with the $j$-th largest eigenvalue of the covariance matrix of $X$.
-
-\paragraph{Economic Interpretation.}
-Rather than assigning economic meaning based on component ordering, we interpret principal components based on their loadings. In our implementation, components that load heavily on signed order flow and its persistence are interpreted as capturing information-driven trading, while components that load on spread variation and trading intensity are interpreted as capturing liquidity-related dynamics.
-
-Importantly, the component most strongly associated with directional and persistent order flow emerges as a higher-order principal component rather than the first component. This highlights that information-driven trading is not the dominant source of variance in the data, but instead represents a more subtle and economically meaningful dimension of trading behavior.
-
-\paragraph{Role of PCA.}
-PCA serves two complementary purposes in our framework. First, it provides a data-driven decomposition of the feature space, allowing us to assess whether the hypothesized information-versus-liquidity structure is supported by the data. Second, it enables the construction of latent factors that can be used directly in predictive regressions.
-
-Conceptually, the pressure score and PCA-based factors serve complementary roles. The pressure score provides an economically motivated and interpretable measure of trading pressure, while PCA offers a statistical decomposition of the same feature space. The consistency of results across these approaches strengthens the overall interpretation.
-
-\subsection{Summary of Methodological Pipeline}
-
-For clarity, the empirical procedure can be summarized as follows:
-\begin{enumerate}
-    \item Construct daily microstructure features from TAQ data.
-    \item Aggregate features over the pre-announcement window to obtain event-level measures.
-    \item Compute the pressure score based on economically motivated feature combinations.
-    \item Apply PCA to the feature space to extract latent components.
-    \item Map selected components to economically interpretable factors based on their loadings.
-    \item Evaluate predictive power using cross-sectional regressions and event-study returns.
-\end{enumerate}
-
-This structure highlights the distinction between economically motivated construction (pressure score) and statistically derived factor extraction (PCA), as well as the complementary roles they play in the analysis.

@@ -1,11 +1,16 @@
+%========================================================
+% Section 7: Robustness
+%========================================================
+
 \section{Robustness}
 
-This section complements the main results by evaluating the stability of the findings under alternative inference procedures and model specifications. While Section 6 focuses on the primary economic results, the analysis below verifies that these conclusions are not driven by specific estimation choices, clustering assumptions, or model specifications. All robustness tests are implemented in
+This section evaluates whether the pressure score remains informative under
+alternative inference choices and after controlling for earnings-surprise
+information. All robustness tests are implemented in
 \texttt{Methods\_Sung\_Cho/run\_continuous\_regression.py} and
 \texttt{Methods\_Sung\_Cho/run\_continuous\_regression\_with\_sue.py}, with
 outputs in
 \texttt{data/results/continuous\_regression\_summary.csv} and
-\newline
 \texttt{data/results/continuous\_regression\_with\_sue.csv}.
 
 \subsection{Continuous Regressions with Alternative Clustered Inference}
@@ -141,24 +146,3 @@ stable: method D is strongest, methods A and B are informative but weaker, and
 method C is not robustly predictive. The key result is that the pressure score
 is not an artifact of a specific standard-error estimator and is not fully
 subsumed by a standard earnings-surprise control.
-
-\subsection{Cross-Sectional Heterogeneity: Size Effects}
-
-To examine whether the predictive power of microstructure-based pressure varies across firm characteristics, we partition the sample by market capitalization.
-
-Specifically, we split the universe into large-cap and small-cap subsamples based on median market capitalization and re-estimate the main specifications within each group.
-
-\paragraph{Motivation}
-
-Market microstructure theory suggests that smaller firms exhibit:
-\begin{itemize}
-    \item Higher information asymmetry
-    \item Lower liquidity
-    \item Slower information incorporation
-\end{itemize}
-
-As a result, information-driven trading should have a stronger and more persistent impact on prices in small-cap stocks, while large-cap stocks may exhibit faster price discovery and weaker drift.
-
-\paragraph{Interpretation}
-
-Differences in coefficient magnitudes and statistical significance across size groups provide insight into the economic channels through which pressure operates, and help distinguish between true information effects and liquidity-driven noise.

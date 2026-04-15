@@ -1,0 +1,196 @@
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+
+
+# =========================
+# Core: Single Day Lambda
+# =========================
+def compute_daily_lambda(
+    trades: pd.DataFrame,
+    quotes: pd.DataFrame,
+    bucket: str = "5min",
+    min_obs: int = 30
+) -> dict:
+    """
+    Compute Kyle-style lambda for a single (stock, day).
+
+    Parameters
+    ----------
+    trades : DataFrame
+        Columns: ['timestamp', 'volume', 'sign']
+    quotes : DataFrame
+        Columns: ['timestamp', 'midpoint']
+    bucket : str
+        Resample frequency (default: '5min')
+    min_obs : int
+        Minimum number of valid buckets required
+
+    Returns
+    -------
+    dict
+        lambda, lambda_adj, lambda_se, r2, n_obs, realized_vol
+    """
+
+    # --- Ensure datetime ---
+    trades = trades.copy()
+    quotes = quotes.copy()
+    trades['timestamp'] = pd.to_datetime(trades['timestamp'])
+    quotes['timestamp'] = pd.to_datetime(quotes['timestamp'])
+
+    # --- Signed volume ---
+    trades['signed_volume'] = trades['volume'] * trades['sign']
+
+    # --- Bucket aggregation: Order Flow ---
+    bucket_flow = trades.resample(bucket, on='timestamp').agg({
+        'signed_volume': 'sum',
+        'volume': 'sum'
+    })
+
+    # Avoid division by zero
+    bucket_flow = bucket_flow[bucket_flow['volume'] > 0]
+    bucket_flow['ofi'] = bucket_flow['signed_volume'] / bucket_flow['volume']
+
+    # --- Bucket aggregation: Midpoint returns ---
+    quotes_resampled = quotes.resample(bucket, on='timestamp').last()
+    quotes_resampled['ret'] = np.log(quotes_resampled['midpoint']).diff()
+
+    # --- Merge ---
+    df = bucket_flow.join(quotes_resampled['ret'], how='inner')
+    df = df.dropna()
+
+    # --- Basic cleaning ---
+    if len(df) < min_obs:
+        return None
+
+    # Remove extreme return outliers (light touch)
+    ret_std = df['ret'].std()
+    if ret_std > 0:
+        df = df[np.abs(df['ret']) < 10 * ret_std]
+
+    if len(df) < min_obs:
+        return None
+
+    # --- Regression ---
+    X = sm.add_constant(df['ofi'])
+    y = df['ret']
+
+    try:
+        model = sm.OLS(y, X).fit()
+    except Exception:
+        return None
+
+    lambda_hat = model.params.get('ofi', np.nan)
+    lambda_se = model.bse.get('ofi', np.nan)
+    r2 = model.rsquared
+    n_obs = int(model.nobs)
+
+    # --- Realized volatility (daily) ---
+    realized_vol = df['ret'].std()
+
+    # --- Volatility-adjusted lambda ---
+    lambda_adj = np.nan
+    if realized_vol > 0:
+        lambda_adj = lambda_hat / realized_vol
+
+    return {
+        'lambda': lambda_hat,
+        'lambda_adj': lambda_adj,
+        'lambda_se': lambda_se,
+        'r2': r2,
+        'n_obs': n_obs,
+        'realized_vol': realized_vol
+    }
+
+
+# =========================
+# Panel: All Stock-Days
+# =========================
+def compute_lambda_panel(
+    trades_df: pd.DataFrame,
+    quotes_df: pd.DataFrame,
+    bucket: str = "5min",
+    min_obs: int = 30
+) -> pd.DataFrame:
+    """
+    Compute lambda for all (permno, date) combinations.
+
+    Parameters
+    ----------
+    trades_df : DataFrame
+        Must include ['permno', 'date', 'timestamp', 'volume', 'sign']
+    quotes_df : DataFrame
+        Must include ['permno', 'date', 'timestamp', 'midpoint']
+
+    Returns
+    -------
+    DataFrame
+        Columns: permno, date, lambda, lambda_adj, lambda_se, r2, n_obs, realized_vol
+    """
+
+    results = []
+
+    grouped = trades_df.groupby(['permno', 'date'])
+
+    for (permno, date), trades_day in grouped:
+
+        quotes_day = quotes_df[
+            (quotes_df['permno'] == permno) &
+            (quotes_df['date'] == date)
+        ]
+
+        if trades_day.empty or quotes_day.empty:
+            continue
+
+        res = compute_daily_lambda(
+            trades=trades_day,
+            quotes=quotes_day,
+            bucket=bucket,
+            min_obs=min_obs
+        )
+
+        if res is None:
+            continue
+
+        results.append({
+            'permno': permno,
+            'date': date,
+            **res
+        })
+
+    return pd.DataFrame(results)
+
+
+# =========================
+# Optional: Winsorization
+# =========================
+def winsorize_series(s: pd.Series, lower=0.01, upper=0.99) -> pd.Series:
+    """
+    Winsorize a pandas Series.
+    """
+    lower_bound = s.quantile(lower)
+    upper_bound = s.quantile(upper)
+    return s.clip(lower=lower_bound, upper=upper_bound)
+
+
+def winsorize_lambda(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Winsorize lambda columns cross-sectionally.
+    """
+    df = df.copy()
+
+    if 'lambda' in df:
+        df['lambda'] = winsorize_series(df['lambda'])
+
+    if 'lambda_adj' in df:
+        df['lambda_adj'] = winsorize_series(df['lambda_adj'])
+
+    return df
+
+
+# =========================
+# Example Usage
+# =========================
+if __name__ == "__main__":
+    # Placeholder example (replace with real data)
+    print("Lambda estimation module loaded.")
